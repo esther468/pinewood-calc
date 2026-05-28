@@ -161,15 +161,27 @@
         // Extra safety net specifically for product selection (CSP-resistant):
         // listen for BOTH click and mousedown at document level in capture phase,
         // and if the target is inside a [onclick] inside our host, fire it.
+        // DEBUG: show a transient on-screen banner when fallback fires.
+        function debugFlash(msg){
+          let d = document.getElementById("__pwc_debug");
+          if (!d) { d = document.createElement("div"); d.id = "__pwc_debug"; d.style.cssText = "position:fixed;top:10px;right:10px;background:#1F3A2E;color:white;padding:8px 14px;border-radius:6px;font:13px sans-serif;z-index:999999;max-width:340px"; document.body.appendChild(d); }
+          d.textContent = msg;
+          d.style.opacity = "1";
+          clearTimeout(d._t);
+          d._t = setTimeout(() => { d.style.transition = "opacity .5s"; d.style.opacity = "0"; }, 3000);
+        }
         function captureFallback(ev){
           let t = ev.target;
           while (t && t !== host && t.parentNode) {
             if (t.hasAttribute && t.hasAttribute("onclick")) {
-              parseAndCall(t.getAttribute("onclick"), t, ev);
+              const code = t.getAttribute("onclick");
+              if (ev.type === "click") debugFlash("Click intercepted: " + code.slice(0,60));
+              if (ev.type === "click") parseAndCall(code, t, ev);
               return;
             }
             t = t.parentNode;
           }
+          if (ev.type === "click" && host.contains(ev.target)) debugFlash("Click in calc but no onclick found on path: " + ev.target.tagName.toLowerCase());
         }
         document.addEventListener("click", captureFallback, true);
         document.addEventListener("mousedown", captureFallback, true);
