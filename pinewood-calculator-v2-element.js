@@ -121,7 +121,7 @@
             if (el.__rebound) return; el.__rebound = true;
             const code = el.getAttribute("onclick") || "";
             el.addEventListener("click", function(ev){
-              try { (new Function("event", code))(ev); }
+              try { (new Function("event", code)).call(el, ev); } // bind this -> the element
               catch(err){ console.error("[pinewood-calculator-v2] onclick rebind error:", err, code.slice(0,80)); }
             });
           });
