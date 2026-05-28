@@ -23,6 +23,10 @@
       // Unify accent green with home/about (--pine).
       host.style.setProperty("--accent", "#1F3A2E", "important");
       host.style.setProperty("--accent-ink", "#1F3A2E", "important");
+      // Disable OpenStreetMap address autocomplete (glitchy inside Wix custom element).
+      // Claiming the global names BEFORE the bundled JS runs neutralises them.
+      window.attachAddress = function(){};
+      window.attachBizName = function(){};
       try {
         const obs = new MutationObserver(() => {
           if (host.style.getPropertyValue("--custom-element-height") !== "0px") {
@@ -106,6 +110,17 @@
           }
         }
         wireEmailCapture();
+        // Safety net for product selection on the offer page: some Wix
+        // pages strip inline onclick handlers. Catch clicks on Select buttons
+        // and re-dispatch to window.selP using data parsed from the original onclick.
+        host.addEventListener("click", function(e){
+          const btn = e.target.closest("[onclick^=\"selP(\"]");
+          if (!btn) return;
+          const m = (btn.getAttribute("onclick") || "").match(/selP\(\s*(\d+)\s*,\s*['\"]([^'\"]*)['\"]\s*,\s*(\d+)/);
+          if (!m || typeof window.selP !== "function") return;
+          // If inline handler already fired this click, calling again is idempotent.
+          try { window.selP(parseInt(m[1]), m[2].replace(/&apos;/g, "\u0027"), parseInt(m[3])); } catch(err){ console.error("[pinewood-application] selP retry failed:", err); }
+        }, true);
       } catch (err) {
         console.error("[" + scope + "] failed to render:", err);
         host.innerHTML = "<p style=\"padding:24px;font-family:sans-serif\">Page failed to load. Please refresh.</p>";
