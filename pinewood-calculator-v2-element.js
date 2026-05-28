@@ -24,9 +24,11 @@
       host.style.setProperty("--accent", "#1F3A2E", "important");
       host.style.setProperty("--accent-ink", "#1F3A2E", "important");
       // Disable OpenStreetMap address autocomplete (glitchy inside Wix custom element).
-      // Claiming the global names BEFORE the bundled JS runs neutralises them.
-      window.attachAddress = function(){};
-      window.attachBizName = function(){};
+      // Lock the property so the bundle cant overwrite our no-op.
+      try {
+        Object.defineProperty(window, "attachAddress", { value: function(){}, writable: false, configurable: true });
+        Object.defineProperty(window, "attachBizName", { value: function(){}, writable: false, configurable: true });
+      } catch(_) {}
       try {
         const obs = new MutationObserver(() => {
           if (host.style.getPropertyValue("--custom-element-height") !== "0px") {
@@ -110,17 +112,33 @@
           }
         }
         wireEmailCapture();
-        // Safety net for product selection on the offer page: some Wix
-        // pages strip inline onclick handlers. Catch clicks on Select buttons
-        // and re-dispatch to window.selP using data parsed from the original onclick.
-        host.addEventListener("click", function(e){
-          const btn = e.target.closest("[onclick^=\"selP(\"]");
-          if (!btn) return;
-          const m = (btn.getAttribute("onclick") || "").match(/selP\(\s*(\d+)\s*,\s*['\"]([^'\"]*)['\"]\s*,\s*(\d+)/);
-          if (!m || typeof window.selP !== "function") return;
-          // If inline handler already fired this click, calling again is idempotent.
-          try { window.selP(parseInt(m[1]), m[2].replace(/&apos;/g, "\u0027"), parseInt(m[3])); } catch(err){ console.error("[pinewood-calculator-v2] selP retry failed:", err); }
-        }, true);
+        // Wix CSP blocks inline onclick AND click events do not bubble from inside
+        // the custom element to the host. Fix: scan for [onclick] elements and
+        // re-bind their handlers as direct addEventListener calls.
+        function rebindOnclicks(root){
+          if (!root || !root.querySelectorAll) return;
+          root.querySelectorAll("[onclick]").forEach(function(el){
+            if (el.__rebound) return; el.__rebound = true;
+            const code = el.getAttribute("onclick") || "";
+            el.addEventListener("click", function(ev){
+              try { (new Function("event", code))(ev); }
+              catch(err){ console.error("[pinewood-calculator-v2] onclick rebind error:", err, code.slice(0,80)); }
+            });
+          });
+        }
+        rebindOnclicks(host);
+        // Watch for dynamically-added elements (product cards, etc.) and rebind theirs too.
+        const handlerObs = new MutationObserver(function(mutations){
+          for (const m of mutations) {
+            for (const node of m.addedNodes) {
+              if (node.nodeType === 1) {
+                if (node.hasAttribute && node.hasAttribute("onclick")) rebindOnclicks(node.parentNode || node);
+                rebindOnclicks(node);
+              }
+            }
+          }
+        });
+        handlerObs.observe(host, { childList: true, subtree: true });
       } catch (err) {
         console.error("[" + scope + "] failed to render:", err);
         host.innerHTML = "<p style=\"padding:24px;font-family:sans-serif\">Page failed to load. Please refresh.</p>";
