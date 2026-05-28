@@ -112,18 +112,49 @@
           }
         }
         wireEmailCapture();
-        // Wix CSP blocks inline onclick AND click events do not bubble from inside
-        // the custom element to the host. Fix: scan for [onclick] elements and
-        // re-bind their handlers as direct addEventListener calls.
+        // Wix CSP blocks inline onclick AND new Function() (unsafe-eval).
+        // Workaround: parse the onclick string into {fn, args} and dispatch
+        // by direct function reference. No eval, no inline handlers.
+        function parseAndCall(code, el, ev){
+          const m = code.match(/^\s*(\w+)\s*\(([\s\S]*)\)\s*;?\s*$/);
+          if (!m) return;
+          const fn = window[m[1]];
+          if (typeof fn !== "function") return;
+          const argsStr = m[2];
+          const args = [];
+          let buf = "", depth = 0, quote = null;
+          for (let i = 0; i < argsStr.length; i++) {
+            const c = argsStr[i], prev = argsStr[i-1];
+            if (quote) { buf += c; if (c === quote && prev !== "\\") quote = null; }
+            else if (c === '"' || c === "\u0027") { quote = c; buf += c; }
+            else if (c === "(" || c === "[") { depth++; buf += c; }
+            else if (c === ")" || c === "]") { depth--; buf += c; }
+            else if (c === "," && depth === 0) { args.push(buf.trim()); buf = ""; }
+            else { buf += c; }
+          }
+          if (buf.trim()) args.push(buf.trim());
+          const resolved = args.map(function(a){
+            if (a === "this") return el;
+            if (a === "event") return ev;
+            if (a === "true") return true;
+            if (a === "false") return false;
+            if (a === "null") return null;
+            if (a === "undefined") return undefined;
+            if (/^-?\d+(\.\d+)?$/.test(a)) return parseFloat(a);
+            if ((a.charAt(0) === "\u0027" && a.charAt(a.length-1) === "\u0027") || (a.charAt(0) === '"' && a.charAt(a.length-1) === '"')) {
+              return a.slice(1,-1).replace(/\\\u0027/g, "\u0027").replace(/&apos;/g, "\u0027");
+            }
+            return a;
+          });
+          try { fn.apply(null, resolved); }
+          catch(err){ console.error("[pinewood-calculator-v2] dispatch error:", err, code.slice(0,80)); }
+        }
         function rebindOnclicks(root){
           if (!root || !root.querySelectorAll) return;
           root.querySelectorAll("[onclick]").forEach(function(el){
             if (el.__rebound) return; el.__rebound = true;
             const code = el.getAttribute("onclick") || "";
-            el.addEventListener("click", function(ev){
-              try { (new Function("event", code)).call(el, ev); } // bind this -> the element
-              catch(err){ console.error("[pinewood-calculator-v2] onclick rebind error:", err, code.slice(0,80)); }
-            });
+            el.addEventListener("click", function(ev){ parseAndCall(code, el, ev); });
           });
         }
         rebindOnclicks(host);
