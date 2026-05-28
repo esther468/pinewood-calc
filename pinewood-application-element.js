@@ -162,6 +162,7 @@
         // listen for BOTH click and mousedown at document level in capture phase,
         // and if the target is inside a [onclick] inside our host, fire it.
         function captureFallback(ev){
+          if (ev.type !== "click") return;
           let t = ev.target;
           while (t && t !== host && t.parentNode) {
             if (t.hasAttribute && t.hasAttribute("onclick")) {
@@ -172,7 +173,6 @@
           }
         }
         document.addEventListener("click", captureFallback, true);
-        document.addEventListener("mousedown", captureFallback, true);
         // Watch for dynamically-added elements (product cards, etc.) and rebind theirs too.
         const handlerObs = new MutationObserver(function(mutations){
           for (const m of mutations) {
