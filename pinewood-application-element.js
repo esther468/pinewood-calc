@@ -290,6 +290,10 @@
         try { if (n === "3a" && !partialSent) { partialSent = true; send("partial", false); } } catch(_) {}
         // For application (no estimate step), partial fires when user passes business page
         try { if (n === "6t" && !partialSent) { partialSent = true; send("partial", false); } } catch(_) {}
+        // Application has no offer step. Skip page 7 (Your Offer) entirely.
+        if (SOURCE_LABEL === "Application" && (n === 7 || n === "7")) {
+          return _goP.call(this, 8);
+        }
         return _goP.apply(this, arguments);
       };
       window.subApp = function(){
