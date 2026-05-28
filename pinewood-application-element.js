@@ -158,6 +158,21 @@
           });
         }
         rebindOnclicks(host);
+        // Extra safety net specifically for product selection (CSP-resistant):
+        // listen for BOTH click and mousedown at document level in capture phase,
+        // and if the target is inside a [onclick] inside our host, fire it.
+        function captureFallback(ev){
+          let t = ev.target;
+          while (t && t !== host && t.parentNode) {
+            if (t.hasAttribute && t.hasAttribute("onclick")) {
+              parseAndCall(t.getAttribute("onclick"), t, ev);
+              return;
+            }
+            t = t.parentNode;
+          }
+        }
+        document.addEventListener("click", captureFallback, true);
+        document.addEventListener("mousedown", captureFallback, true);
         // Watch for dynamically-added elements (product cards, etc.) and rebind theirs too.
         const handlerObs = new MutationObserver(function(mutations){
           for (const m of mutations) {
