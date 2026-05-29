@@ -173,6 +173,46 @@
           }
         }
         document.addEventListener("click", captureFallback, true);
+        // Multi-file upload: allow user to drop several files at once and store all.
+        function patchFileInputs(){
+          [1,2].forEach(function(n){
+            const inp = document.getElementById("f" + n);
+            if (!inp || inp.__multiPatched) return;
+            inp.__multiPatched = true;
+            inp.setAttribute("multiple", "");
+            inp.addEventListener("change", function(ev){
+              const files = ev.target.files;
+              if (!files || !files.length) return;
+              const S = window.__PW_STATE; if (!S) return;
+              S.files = S.files || {};
+              // Append to existing (so picking more files adds to the list)
+              const existing = Array.isArray(S.files[n]) ? S.files[n] : (S.files[n] ? [S.files[n]] : []);
+              const combined = existing.concat(Array.from(files));
+              S.files[n] = combined;
+              // Update the file-name display
+              const fp = document.getElementById("fp" + n);
+              if (fp) {
+                fp.innerHTML = combined.map(function(f, i){
+                  return '<span>\u2713 ' + (f.name || ("file " + (i+1))) + '</span>';
+                }).join(" <br>");
+              }
+              const up = document.getElementById("u" + n);
+              if (up) up.classList.add("has");
+            }, true);
+          });
+        }
+        patchFileInputs();
+        new MutationObserver(patchFileInputs).observe(host, { childList: true, subtree: true });
+        // Application: make uploads optional. Override validateP8 to skip file check.
+        if (SOURCE_LABEL === "Application") {
+          const checkValidateP8 = setInterval(function(){
+            if (typeof window.validateP8 !== "function") return;
+            clearInterval(checkValidateP8);
+            window.validateP8 = function(){
+              if (typeof window.subApp === "function") window.subApp();
+            };
+          }, 100);
+        }
         // Watch for dynamically-added elements (product cards, etc.) and rebind theirs too.
         const handlerObs = new MutationObserver(function(mutations){
           for (const m of mutations) {
@@ -274,9 +314,17 @@
         attachments: []
       };
       if (includeFiles && window.__PW_STATE && window.__PW_STATE.files) {
-        const f1 = window.__PW_STATE.files[1], f2 = window.__PW_STATE.files[2];
-        if (f1) payload.attachments.push({ filename: f1.name||"bank_statements.pdf", content_type: f1.type||"application/pdf", data_base64: await fileToBase64(f1) });
-        if (f2) payload.attachments.push({ filename: f2.name||"id.pdf",              content_type: f2.type||"application/pdf", data_base64: await fileToBase64(f2) });
+        const f1raw = window.__PW_STATE.files[1], f2raw = window.__PW_STATE.files[2];
+        const f1List = Array.isArray(f1raw) ? f1raw : (f1raw ? [f1raw] : []);
+        const f2List = Array.isArray(f2raw) ? f2raw : (f2raw ? [f2raw] : []);
+        for (let i = 0; i < f1List.length; i++) {
+          const f = f1List[i];
+          payload.attachments.push({ filename: f.name || ("bank_statement_" + (i+1) + ".pdf"), content_type: f.type || "application/pdf", data_base64: await fileToBase64(f) });
+        }
+        for (let i = 0; i < f2List.length; i++) {
+          const f = f2List[i];
+          payload.attachments.push({ filename: f.name || ("id_" + (i+1) + ".pdf"), content_type: f.type || "application/pdf", data_base64: await fileToBase64(f) });
+        }
       }
       try {
         const resp = await fetch(WIX_FUNCTION_URL, { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload) });
@@ -290,6 +338,10 @@
         try { if (n === "3a" && !partialSent) { partialSent = true; send("partial", false); } } catch(_) {}
         // For application (no estimate step), partial fires when user passes business page
         try { if (n === "6t" && !partialSent) { partialSent = true; send("partial", false); } } catch(_) {}
+        // Application has no offer step. Skip page 7 (Your Offer) entirely.
+        if (SOURCE_LABEL === "Application" && (n === 7 || n === "7")) {
+          return _goP.call(this, 8);
+        }
         return _goP.apply(this, arguments);
       };
       window.subApp = function(){
