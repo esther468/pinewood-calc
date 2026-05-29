@@ -93,6 +93,27 @@
             }
           }
         }
+        // CTA rewiring: every Apply Now -> /new-app, Get a free offer -> /new-calc
+        const CTA_MAP = [
+          { match: /^\s*apply\s*now\s*$/i, href: "/new-app" },
+          { match: /^\s*get\s*a?\s*free\s*offer/i, href: "/new-calc" },
+          { match: /^\s*open\s*the\s*calculator/i, href: "/new-calc" },
+          { match: /^\s*get\s*offer\s*$/i, href: "/new-calc" }
+        ];
+        function rewireCTAs(){
+          host.querySelectorAll("a, button").forEach(function(el){
+            const text = (el.textContent || "").trim();
+            for (const c of CTA_MAP) {
+              if (c.match.test(text)) {
+                if (el.tagName === "A") { el.setAttribute("href", c.href); el.removeAttribute("target"); }
+                else { el.style.cursor = "pointer"; if (!el.__ctaWired) { el.__ctaWired = true; el.addEventListener("click", function(ev){ ev.preventDefault(); window.location.href = c.href; }); } }
+                break;
+              }
+            }
+          });
+        }
+        rewireCTAs();
+        new MutationObserver(rewireCTAs).observe(host, { childList: true, subtree: true });
       } catch (err) {
         console.error("[" + scope + "] failed to render:", err);
         host.innerHTML = "<p style=\"padding:24px;font-family:sans-serif\">Page failed to load. Please refresh.</p>";
