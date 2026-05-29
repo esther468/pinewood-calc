@@ -106,6 +106,10 @@
           scoped.textContent = scopeCss(s.textContent || "");
           host.appendChild(scoped);
         }
+        // Hide decorative green hero-blob washes that clashed with the rest of the page.
+        const cleanup = document.createElement("style");
+        cleanup.textContent = "pinewood-home-v2 .hero-blob, pinewood-home-v2 .hero-blob-a, pinewood-home-v2 .hero-blob-b { display: none !important; }";
+        host.appendChild(cleanup);
 
         // Body content
         const body = doc.body;
@@ -131,6 +135,36 @@
             }
           }
         }
+        // Rewire CTAs to the live calc + app pages.
+        const CTA_MAP = [
+          { match: /^\s*apply\s*now\s*$/i,         href: "/new-app"  },
+          { match: /^\s*get\s*a?\s*free\s*offer/i, href: "/new-calc" },
+          { match: /^\s*open\s*the\s*calculator/i,  href: "/new-calc" },
+          { match: /^\s*get\s*offer\s*$/i,         href: "/new-calc" }
+        ];
+        function rewireCTAs(){
+          host.querySelectorAll("a, button").forEach(function(el){
+            const text = (el.textContent || "").trim();
+            for (const c of CTA_MAP) {
+              if (c.match.test(text)) {
+                if (el.tagName === "A") {
+                  el.setAttribute("href", c.href);
+                  el.removeAttribute("target");
+                } else {
+                  el.style.cursor = "pointer";
+                  if (!el.__ctaWired) {
+                    el.__ctaWired = true;
+                    el.addEventListener("click", function(ev){ ev.preventDefault(); window.location.href = c.href; });
+                  }
+                }
+                break;
+              }
+            }
+          });
+        }
+        rewireCTAs();
+        const ctaObs = new MutationObserver(rewireCTAs);
+        ctaObs.observe(host, { childList: true, subtree: true });
       } catch (err) {
         console.error("[pinewood-home-v2] failed to render:", err);
         host.innerHTML = '<p style="padding:24px;font-family:sans-serif">Page failed to load. Please refresh.</p>';
