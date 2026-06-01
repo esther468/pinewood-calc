@@ -225,6 +225,29 @@
           }
         });
         handlerObs.observe(host, { childList: true, subtree: true });
+        // FIX: original CSS has "#page7 .pc-sel { display: none !important; }" which
+        // hides the Select buttons on the step-6 offer picker. Cards have cursor:pointer
+        // but no click handler — so users see clickable-looking cards that do nothing.
+        // (a) Force the .pc-sel container to display so the buttons render.
+        // (b) ALSO make the whole .pc card clickable as a fallback — dispatch the
+        //     embedded buttons onclick when the card is clicked anywhere.
+        const calcFix = document.createElement("style");
+        calcFix.textContent = "#page7 .pc-sel { display: flex !important; } #page7 .pc { cursor: pointer; }";
+        host.appendChild(calcFix);
+        function wireOfferCards(){
+          document.querySelectorAll("#pGrid3 .pc").forEach(function(card){
+            if (card.__cardWired) return;
+            card.__cardWired = true;
+            card.addEventListener("click", function(ev){
+              const btn = card.querySelector(".pc-sel button[onclick]");
+              if (btn && !btn.disabled && ev.target !== btn && !btn.contains(ev.target)) {
+                parseAndCall(btn.getAttribute("onclick"), btn, ev);
+              }
+            });
+          });
+        }
+        wireOfferCards();
+        new MutationObserver(wireOfferCards).observe(host, { childList: true, subtree: true });
       } catch (err) {
         console.error("[" + scope + "] failed to render:", err);
         host.innerHTML = "<p style=\"padding:24px;font-family:sans-serif\">Page failed to load. Please refresh.</p>";
