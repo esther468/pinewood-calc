@@ -194,10 +194,15 @@
               if (fp) {
                 fp.innerHTML = combined.map(function(f, i){
                   return '<span>\u2713 ' + (f.name || ("file " + (i+1))) + '</span>';
-                }).join(" <br>");
+                }).join(" <br>") + ' <span class="x" onclick="rF(' + n + ',event)" style="cursor:pointer;margin-left:8px">\u2715</span>';
               }
               const up = document.getElementById("u" + n);
               if (up) up.classList.add("has");
+              // CRITICAL: stop original calc handler from running and overwriting S.files[n]
+              // with just i.files[0] (single File). Without this, second+ batches replace prior selections.
+              ev.stopImmediatePropagation();
+              // Reset input.value so re-picking the SAME file fires change again
+              setTimeout(function(){ try { ev.target.value = ""; } catch(_){} }, 0);
             }, true);
           });
         }
