@@ -173,41 +173,48 @@
           }
         }
         document.addEventListener("click", captureFallback, true);
-        // Multi-file upload: allow user to drop several files at once and store all.
+        // Multi-file upload: ensure inputs accept multi, AND override window.hF
+        // (the function the inline onchange="hF(this,n)" calls) so files get appended
+        // into an array instead of overwritten by a single i.files[0].
         function patchFileInputs(){
           [1,2].forEach(function(n){
             const inp = document.getElementById("f" + n);
             if (!inp || inp.__multiPatched) return;
             inp.__multiPatched = true;
             inp.setAttribute("multiple", "");
-            inp.addEventListener("change", function(ev){
-              const files = ev.target.files;
-              if (!files || !files.length) return;
-              const S = window.__PW_STATE; if (!S) return;
-              S.files = S.files || {};
-              // Append to existing (so picking more files adds to the list)
-              const existing = Array.isArray(S.files[n]) ? S.files[n] : (S.files[n] ? [S.files[n]] : []);
-              const combined = existing.concat(Array.from(files));
-              S.files[n] = combined;
-              // Update the file-name display
-              const fp = document.getElementById("fp" + n);
-              if (fp) {
-                fp.innerHTML = combined.map(function(f, i){
-                  return '<span>\u2713 ' + (f.name || ("file " + (i+1))) + '</span>';
-                }).join(" <br>") + ' <span class="x" onclick="rF(' + n + ',event)" style="cursor:pointer;margin-left:8px">\u2715</span>';
-              }
-              const up = document.getElementById("u" + n);
-              if (up) up.classList.add("has");
-              // CRITICAL: stop original calc handler from running and overwriting S.files[n]
-              // with just i.files[0] (single File). Without this, second+ batches replace prior selections.
-              ev.stopImmediatePropagation();
-              // Reset input.value so re-picking the SAME file fires change again
-              setTimeout(function(){ try { ev.target.value = ""; } catch(_){} }, 0);
-            }, true);
           });
         }
         patchFileInputs();
         new MutationObserver(patchFileInputs).observe(host, { childList: true, subtree: true });
+        // Replace window.hF with a multi-file version. The original is:
+        //   window.hF = function(i,n){ if(i.files && i.files[0]){ S.files[n] = i.files[0]; ... } }
+        // We wait until the bundle defines it, then overwrite.
+        const hfCheck = setInterval(function(){
+          if (typeof window.hF !== "function") return;
+          clearInterval(hfCheck);
+          window.hF = function(i, n){
+            const files = i && i.files;
+            if (!files || !files.length) return;
+            const S = window.__PW_STATE; if (!S) return;
+            S.files = S.files || {};
+            // Append new files (so re-clicking the upload to add more keeps prior ones)
+            const existing = Array.isArray(S.files[n]) ? S.files[n] : (S.files[n] ? [S.files[n]] : []);
+            const combined = existing.concat(Array.from(files));
+            S.files[n] = combined;
+            const fp = document.getElementById("fp" + n);
+            if (fp) {
+              fp.innerHTML = combined.map(function(f){
+                return '<span>\u2713 ' + (f.name || "file") + '</span>';
+              }).join(" <br>") + ' <span class="x" onclick="rF(' + n + ',event)" style="cursor:pointer;margin-left:8px">\u2715</span>';
+            }
+            const up = document.getElementById("u" + n);
+            if (up) up.classList.add("has");
+            // Clear input.value so picking the SAME filename again fires another change
+            try { i.value = ""; } catch(_){}
+          };
+          // Lock so the bundle cannot reassign it later
+          try { Object.defineProperty(window, "hF", { value: window.hF, writable: false, configurable: true }); } catch(_){}
+        }, 50);
         // Application: make uploads optional. Override validateP8 to skip file check.
         if (SOURCE_LABEL === "Application") {
           const checkValidateP8 = setInterval(function(){
