@@ -18,13 +18,13 @@
       if (this.__loaded) return;
       this.__loaded = true;
       const host = this;
-      // Neutralise Wix's --custom-element-height: it gets baked at editor-time
-      // and can hold an absurd value (max 16,777,215px = 2^24-1). The CSS rule
-      // `min-height: var(--custom-element-height)` lives on a Wix ancestor of
-      // the host, and CSS vars don't inherit upward — so setting the var only
-      // on the host doesn't reach the ancestor that reads it. We propagate the
-      // override up the chain. This is purely setting a CSS variable (no direct
-      // min-height changes), so it can't break Wix's layout for other elements.
+      // Neutralise Wix's --custom-element-height: Wix bakes a CSS height into a
+      // wrapper ancestor that can be as large as 16,777,215px (2^24-1), which
+      // pushes the entire page off-screen. We need to (a) propagate the CSS var
+      // up the parent chain, AND (b) explicitly collapse any ancestor whose
+      // computed height/min-height is ABSURDLY large (e.g. > 100,000px). This
+      // is targeted at clearly-broken elements only, so it can't damage
+      // normally-sized Wix layout containers.
       function neutraliseHeightVar(){
         let el = host;
         let depth = 0;
@@ -32,8 +32,31 @@
           try { el.style.setProperty("--custom-element-height", "0px", "important"); } catch (_) {}
           el = el.parentElement;
         }
+        // Walk again — collapse any clearly-broken ancestor.
+        let p = host.parentElement;
+        let d = 0;
+        while (p && d++ < 20) {
+          try {
+            const cs = getComputedStyle(p);
+            const h = parseFloat(cs.height);
+            const mh = parseFloat(cs.minHeight);
+            if ((h && h > 100000) || (mh && mh > 100000)) {
+              p.style.setProperty("min-height", "0", "important");
+              p.style.setProperty("height", "auto", "important");
+            }
+          } catch (_) {}
+          p = p.parentElement;
+        }
       }
       neutraliseHeightVar();
+      // Run again after each frame for the first few seconds in case Wix's
+      // own JS re-applies the broken value after we fix it.
+      let ticks = 0;
+      const tick = () => {
+        neutraliseHeightVar();
+        if (++ticks < 30) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
       try {
         const obs = new MutationObserver(neutraliseHeightVar);
         obs.observe(host, { attributes: true, attributeFilter: ["style"] });
