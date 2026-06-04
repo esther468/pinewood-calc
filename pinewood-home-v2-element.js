@@ -112,10 +112,7 @@
         //   - guarantees ("Three guarantees in writing")
         //   - final-cta ("Tailored financing, sized to your business")
         const cleanup = document.createElement("style");
-        // Also: add bottom spacing so the now-last section (faq) doesn't visually
-        // collide with the Wix footer below the host. Without this, the FAQ items
-        // at the bottom can be covered by the footer chrome and become unclickable.
-        cleanup.textContent = "pinewood-home-v2 .hero-blob, pinewood-home-v2 .hero-blob-a, pinewood-home-v2 .hero-blob-b { display: none !important; } pinewood-home-v2 section.benefits, pinewood-home-v2 section.guarantees, pinewood-home-v2 section.final-cta { display: none !important; } pinewood-home-v2 { display: block; padding-bottom: 120px; } pinewood-home-v2 section.faq { padding-bottom: 200px !important; }";
+        cleanup.textContent = "pinewood-home-v2 .hero-blob, pinewood-home-v2 .hero-blob-a, pinewood-home-v2 .hero-blob-b { display: none !important; } pinewood-home-v2 section.benefits, pinewood-home-v2 section.guarantees, pinewood-home-v2 section.final-cta { display: none !important; }";
         host.appendChild(cleanup);
 
         // Body content
