@@ -126,12 +126,8 @@
           host.appendChild(scoped);
         }
         // Hide decorative green hero-blob washes that clashed with the rest of the page.
-        // Also hide three sections per Yishai's request (homepage too long):
-        //   - benefits ("Capital built for operators, not portfolios")
-        //   - guarantees ("Three guarantees in writing")
-        //   - final-cta ("Tailored financing, sized to your business")
         const cleanup = document.createElement("style");
-        cleanup.textContent = "pinewood-home-v2 .hero-blob, pinewood-home-v2 .hero-blob-a, pinewood-home-v2 .hero-blob-b { display: none !important; } pinewood-home-v2 section.benefits, pinewood-home-v2 section.guarantees, pinewood-home-v2 section.final-cta { display: none !important; }";
+        cleanup.textContent = "pinewood-home-v2 .hero-blob, pinewood-home-v2 .hero-blob-a, pinewood-home-v2 .hero-blob-b { display: none !important; }";
         host.appendChild(cleanup);
 
         // Body content
