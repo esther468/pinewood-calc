@@ -19,18 +19,25 @@
       this.__loaded = true;
       const host = this;
       // Neutralise Wix's --custom-element-height: it gets baked at editor-time
-      // and can hold an absurd value (sometimes 8M px) from the iframe-resizer
-      // postMessage feedback. Reset it on the host so min-height collapses to 0
-      // and the element sizes from its own content.
-      host.style.setProperty("--custom-element-height", "0px", "important");
-      // Re-apply on any re-evaluation cycle (some Wix repaints re-set it).
+      // and can hold an absurd value (max 16,777,215px = 2^24-1). The CSS rule
+      // `min-height: var(--custom-element-height)` lives on a Wix ancestor of
+      // the host, and CSS vars don't inherit upward — so setting the var only
+      // on the host doesn't reach the ancestor that reads it. We propagate the
+      // override up the chain. This is purely setting a CSS variable (no direct
+      // min-height changes), so it can't break Wix's layout for other elements.
+      function neutraliseHeightVar(){
+        let el = host;
+        let depth = 0;
+        while (el && depth++ < 20) {
+          try { el.style.setProperty("--custom-element-height", "0px", "important"); } catch (_) {}
+          el = el.parentElement;
+        }
+      }
+      neutraliseHeightVar();
       try {
-        const obs = new MutationObserver(() => {
-          if (host.style.getPropertyValue("--custom-element-height") !== "0px") {
-            host.style.setProperty("--custom-element-height", "0px", "important");
-          }
-        });
+        const obs = new MutationObserver(neutraliseHeightVar);
         obs.observe(host, { attributes: true, attributeFilter: ["style"] });
+        if (host.parentElement) obs.observe(host.parentElement, { attributes: true, attributeFilter: ["style"] });
       } catch (_) {}
       try {
         // ---- decode bundled assets to blob URLs ----
