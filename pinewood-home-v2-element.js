@@ -32,17 +32,23 @@
           try { el.style.setProperty("--custom-element-height", "0px", "important"); } catch (_) {}
           el = el.parentElement;
         }
-        // Walk again — collapse any clearly-broken ancestor.
+        // Walk again — collapse any clearly-broken ancestor. The Wix container
+        // that holds the custom element uses `display: grid` with a single
+        // `grid-template-rows: <huge>px` row, so we must override grid-template-rows
+        // (height/min-height alone aren't enough when the grid track sets size).
         let p = host.parentElement;
         let d = 0;
         while (p && d++ < 20) {
           try {
             const cs = getComputedStyle(p);
-            const h = parseFloat(cs.height);
+            const ht = parseFloat(cs.height);
             const mh = parseFloat(cs.minHeight);
-            if ((h && h > 100000) || (mh && mh > 100000)) {
+            const rowsStr = cs.gridTemplateRows || "";
+            const rowsHuge = /(\d{6,})px/.test(rowsStr);
+            if ((ht && ht > 100000) || (mh && mh > 100000) || rowsHuge) {
               p.style.setProperty("min-height", "0", "important");
               p.style.setProperty("height", "auto", "important");
+              p.style.setProperty("grid-template-rows", "auto", "important");
             }
           } catch (_) {}
           p = p.parentElement;
