@@ -32,10 +32,11 @@
           try { el.style.setProperty("--custom-element-height", "0px", "important"); } catch (_) {}
           el = el.parentElement;
         }
-        // Walk again — collapse any clearly-broken ancestor. The Wix container
-        // that holds the custom element uses `display: grid` with a single
-        // `grid-template-rows: <huge>px` row, so we must override grid-template-rows
-        // (height/min-height alone aren't enough when the grid track sets size).
+        // Walk again — fix any clearly-broken ancestor. Wix's wrapper sets
+        // grid-template-rows: <16M>px AND margin-top: -<16M>px on the section
+        // so they cancel; when the custom element renders shorter than expected,
+        // the negative margin leaves content pushed 16M px upward off-screen.
+        // We collapse both to neutral values.
         let p = host.parentElement;
         let d = 0;
         while (p && d++ < 20) {
@@ -43,12 +44,16 @@
             const cs = getComputedStyle(p);
             const ht = parseFloat(cs.height);
             const mh = parseFloat(cs.minHeight);
+            const mt = parseFloat(cs.marginTop);
             const rowsStr = cs.gridTemplateRows || "";
             const rowsHuge = /(\d{6,})px/.test(rowsStr);
-            if ((ht && ht > 100000) || (mh && mh > 100000) || rowsHuge) {
+            const broken = (ht && Math.abs(ht) > 100000) || (mh && mh > 100000) || rowsHuge || (mt && Math.abs(mt) > 100000);
+            if (broken) {
               p.style.setProperty("min-height", "0", "important");
               p.style.setProperty("height", "auto", "important");
               p.style.setProperty("grid-template-rows", "auto", "important");
+              p.style.setProperty("margin-top", "0", "important");
+              p.style.setProperty("margin-bottom", "0", "important");
             }
           } catch (_) {}
           p = p.parentElement;
