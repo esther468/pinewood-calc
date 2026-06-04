@@ -19,18 +19,37 @@
       this.__loaded = true;
       const host = this;
       // Neutralise Wix's --custom-element-height: it gets baked at editor-time
-      // and can hold an absurd value (sometimes 8M px) from the iframe-resizer
-      // postMessage feedback. Reset it on the host so min-height collapses to 0
-      // and the element sizes from its own content.
-      host.style.setProperty("--custom-element-height", "0px", "important");
-      // Re-apply on any re-evaluation cycle (some Wix repaints re-set it).
+      // and can hold an absurd value (max 16,777,215px = 2^24-1) from the
+      // iframe-resizer postMessage feedback.
+      // Setting the CSS var on host only inherits to descendants, but the
+      // problematic CSS rule lives on a Wix ancestor (min-height read via the
+      // var). So we (a) propagate the var up the ancestor chain, and (b) if any
+      // ancestor STILL ends up with an absurd computed min-height, override that
+      // min-height directly with `min-height: 0` only on those offending elements.
+      function neutraliseHeightVar(){
+        let el = host;
+        let depth = 0;
+        while (el && depth++ < 20) {
+          try { el.style.setProperty("--custom-element-height", "0px", "important"); } catch (_) {}
+          el = el.parentElement;
+        }
+        // Also explicitly fix any ancestor whose computed min-height is absurd.
+        let p = host.parentElement;
+        let d = 0;
+        while (p && d++ < 20) {
+          try {
+            const mh = parseFloat(getComputedStyle(p).minHeight);
+            if (mh > 100000) p.style.setProperty("min-height", "0", "important");
+          } catch (_) {}
+          p = p.parentElement;
+        }
+      }
+      neutraliseHeightVar();
+      // Re-apply on any re-evaluation cycle (Wix repaints sometimes re-set it).
       try {
-        const obs = new MutationObserver(() => {
-          if (host.style.getPropertyValue("--custom-element-height") !== "0px") {
-            host.style.setProperty("--custom-element-height", "0px", "important");
-          }
-        });
+        const obs = new MutationObserver(neutraliseHeightVar);
         obs.observe(host, { attributes: true, attributeFilter: ["style"] });
+        if (host.parentElement) obs.observe(host.parentElement, { attributes: true, attributeFilter: ["style"] });
       } catch (_) {}
       try {
         // ---- decode bundled assets to blob URLs ----
