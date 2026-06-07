@@ -230,6 +230,12 @@
       style.textContent = CSS;
       host.appendChild(style);
 
+      // Hide the landing pages own sticky header — Wix already renders a site nav above.
+      // Also remove the empty footer placeholder.
+      const cleanup = document.createElement("style");
+      cleanup.textContent = TAG + " .site-head { display: none !important; } " + TAG + " footer { display: none !important; }";
+      host.appendChild(cleanup);
+
       // Inject body content
       const wrap = document.createElement("div");
       wrap.innerHTML = BODY_HTML;
