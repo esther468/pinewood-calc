@@ -94,9 +94,6 @@
         // Mobile-fit overrides
         const mobileFix = document.createElement("style");
         mobileFix.textContent = ""
-          + "pinewood-article-01{display:block;width:100%;max-width:100vw;overflow-x:hidden;box-sizing:border-box}"
-          + "pinewood-article-01 *{max-width:100%;box-sizing:border-box}"
-          + "pinewood-article-01 img,pinewood-article-01 video,pinewood-article-01 iframe{height:auto}"
           + "@media (max-width:600px){"
           + " pinewood-article-01 h1{font-size:clamp(1.9rem,8vw,2.8rem) !important;line-height:1.08 !important}"
           + " pinewood-article-01 h2{font-size:clamp(1.4rem,5.5vw,2rem) !important;line-height:1.15 !important}"
