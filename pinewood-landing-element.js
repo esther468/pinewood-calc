@@ -233,7 +233,25 @@
       // Hide the landing pages own sticky header — Wix already renders a site nav above.
       // Also remove the empty footer placeholder.
       const cleanup = document.createElement("style");
-      cleanup.textContent = TAG + " .site-head { display: none !important; } " + TAG + " footer { display: none !important; }";
+      cleanup.textContent = TAG + " .site-head { display: none !important; } " + TAG + " footer { display: none !important; }"
+        + " " + TAG + "{display:block;width:100%;max-width:100vw;overflow-x:hidden;box-sizing:border-box;font-size:16px}"
+        + " " + TAG + " *{max-width:100%;box-sizing:border-box}"
+        + " " + TAG + " img,"+TAG+" video,"+TAG+" iframe{height:auto}"
+        + " @media (max-width:600px){"
+        + "  " + TAG + " .hero h1,"+TAG+" h1{font-size:clamp(2rem,9vw,3rem) !important;line-height:1.05 !important}"
+        + "  " + TAG + " h2,"+TAG+" .qhead{font-size:clamp(1.4rem,6vw,1.9rem) !important;line-height:1.15 !important}"
+        + "  " + TAG + " h3{font-size:clamp(1.15rem,4.8vw,1.5rem) !important}"
+        + "  " + TAG + " .lede,"+TAG+" .hero .sub{font-size:1rem !important;line-height:1.5 !important}"
+        + "  " + TAG + " .fork,"+TAG+" .choice-grid,"+TAG+" .grid-2,"+TAG+" [class*='2col']{grid-template-columns:1fr !important;gap:14px !important}"
+        + "  " + TAG + " .wrap,"+TAG+" .container,"+TAG+" section,"+TAG+" .hero,"+TAG+" .pw{padding-left:18px !important;padding-right:18px !important}"
+        + "  " + TAG + " .fcard,"+TAG+" .card{padding:22px 18px !important}"
+        + "  " + TAG + " .fbtn,"+TAG+" .btn{width:100% !important;justify-content:center !important;padding:14px 16px !important;min-height:44px}"
+        + "  " + TAG + " .choice{padding:16px 14px !important}"
+        + "  " + TAG + " .nm{font-size:1.05em !important}"
+        + "  " + TAG + " .tg{font-size:.85em !important}"
+        + "  " + TAG + " .nav-row{flex-direction:column-reverse !important;gap:10px !important}"
+        + "  " + TAG + " input,"+TAG+" select,"+TAG+" textarea{font-size:16px !important}"
+        + " }";
       host.appendChild(cleanup);
 
       // Inject body content
