@@ -91,6 +91,22 @@
           scoped.textContent = scopeCss(s.textContent || "");
           host.appendChild(scoped);
         }
+        // Mobile-fit overrides
+        const mobileFix = document.createElement("style");
+        mobileFix.textContent = ""
+          + "pinewood-article-04{display:block;width:100%;max-width:100vw;overflow-x:hidden;box-sizing:border-box}"
+          + "pinewood-article-04 *{max-width:100%;box-sizing:border-box}"
+          + "pinewood-article-04 img,pinewood-article-04 video,pinewood-article-04 iframe{height:auto}"
+          + "@media (max-width:600px){"
+          + " pinewood-article-04 h1{font-size:clamp(1.9rem,8vw,2.8rem) !important;line-height:1.08 !important}"
+          + " pinewood-article-04 h2{font-size:clamp(1.4rem,5.5vw,2rem) !important;line-height:1.15 !important}"
+          + " pinewood-article-04 h3{font-size:clamp(1.15rem,4.6vw,1.5rem) !important}"
+          + " pinewood-article-04 p,pinewood-article-04 li{font-size:1.02rem !important;line-height:1.65 !important}"
+          + " pinewood-article-04 section,pinewood-article-04 .container,pinewood-article-04 .wrap,pinewood-article-04 main,pinewood-article-04 article{padding-left:18px !important;padding-right:18px !important}"
+          + " pinewood-article-04 .site-head,pinewood-article-04 .site-foot,pinewood-article-04 footer{display:none !important}"
+          + " pinewood-article-04 blockquote{margin-left:0 !important;margin-right:0 !important;padding:14px 18px !important}"
+          + "}";
+        host.appendChild(mobileFix);
         const body = doc.body;
         if (body) {
           if (body.hasAttribute("data-variant")) host.setAttribute("data-variant", body.getAttribute("data-variant"));
