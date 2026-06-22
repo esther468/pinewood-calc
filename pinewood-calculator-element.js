@@ -67,6 +67,26 @@
         const styles = doc.head ? doc.head.querySelectorAll("style") : [];
         for (const s of styles) host.appendChild(s.cloneNode(true));
 
+        // Mobile-fit overrides — keep the calc inside the viewport on phones.
+        const mobileFix = document.createElement("style");
+        mobileFix.textContent = ""
+          + "pinewood-calculator{display:block;width:100%;max-width:100vw;overflow-x:hidden;box-sizing:border-box}"
+          + "pinewood-calculator *{max-width:100%;box-sizing:border-box}"
+          + "pinewood-calculator img,pinewood-calculator video,pinewood-calculator iframe{height:auto}"
+          + "@media (max-width:600px){"
+          + " pinewood-calculator h1{font-size:clamp(1.7rem,7vw,2.4rem) !important;line-height:1.1 !important}"
+          + " pinewood-calculator h2{font-size:clamp(1.3rem,5.5vw,1.9rem) !important;line-height:1.15 !important}"
+          + " pinewood-calculator h3{font-size:clamp(1.1rem,4.5vw,1.5rem) !important}"
+          + " pinewood-calculator .row,pinewood-calculator .grid,pinewood-calculator [class*='cols-2'],pinewood-calculator [class*='grid-2'],pinewood-calculator .offer-grid{grid-template-columns:1fr !important;gap:12px !important}"
+          + " pinewood-calculator section,pinewood-calculator .container,pinewood-calculator .wrap,pinewood-calculator .pw,pinewood-calculator .step,pinewood-calculator .frame{padding-left:18px !important;padding-right:18px !important}"
+          + " pinewood-calculator .card,pinewood-calculator .panel{padding:18px 16px !important}"
+          + " pinewood-calculator .btn,pinewood-calculator button:not(.choice):not(.iconbtn):not([class*='close']):not([class*='link']){min-height:44px}"
+          + " pinewood-calculator .nav-row,pinewood-calculator .actions{flex-direction:column-reverse !important;gap:10px !important}"
+          + " pinewood-calculator .nav-row .btn,pinewood-calculator .actions .btn{width:100% !important;justify-content:center !important}"
+          + " pinewood-calculator input,pinewood-calculator select,pinewood-calculator textarea{font-size:16px !important}"
+          + "}";
+        host.appendChild(mobileFix);
+
         // Body content: copy children into the host
         const body = doc.body;
         if (body) {
