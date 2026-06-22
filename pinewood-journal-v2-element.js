@@ -91,6 +91,22 @@
           scoped.textContent = scopeCss(s.textContent || "");
           host.appendChild(scoped);
         }
+        // Mobile-fit overrides
+        const mobileFix = document.createElement("style");
+        mobileFix.textContent = ""
+          + "pinewood-journal-v2{display:block;width:100%;max-width:100vw;overflow-x:hidden;box-sizing:border-box}"
+          + "pinewood-journal-v2 *{max-width:100%;box-sizing:border-box}"
+          + "pinewood-journal-v2 img,pinewood-journal-v2 video,pinewood-journal-v2 iframe{height:auto}"
+          + "@media (max-width:600px){"
+          + " pinewood-journal-v2 h1{font-size:clamp(1.8rem,7vw,2.6rem) !important;line-height:1.1 !important}"
+          + " pinewood-journal-v2 h2{font-size:clamp(1.4rem,5.5vw,2rem) !important;line-height:1.15 !important}"
+          + " pinewood-journal-v2 h3{font-size:clamp(1.15rem,4.6vw,1.5rem) !important}"
+          + " pinewood-journal-v2 .post-grid,pinewood-journal-v2 .grid,pinewood-journal-v2 [class*='grid-2'],pinewood-journal-v2 [class*='2col']{grid-template-columns:1fr !important;gap:18px !important}"
+          + " pinewood-journal-v2 section,pinewood-journal-v2 .container,pinewood-journal-v2 .wrap,pinewood-journal-v2 main{padding-left:18px !important;padding-right:18px !important}"
+          + " pinewood-journal-v2 .post-card,pinewood-journal-v2 .card{padding:20px 16px !important}"
+          + " pinewood-journal-v2 .site-head,pinewood-journal-v2 .site-foot,pinewood-journal-v2 footer{display:none !important}"
+          + "}";
+        host.appendChild(mobileFix);
         const body = doc.body;
         if (body) {
           if (body.hasAttribute("data-variant")) host.setAttribute("data-variant", body.getAttribute("data-variant"));
