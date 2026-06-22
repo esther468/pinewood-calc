@@ -154,19 +154,13 @@
         //   - guarantees ("Three guarantees in writing")
         //   - final-cta ("Tailored financing, sized to your business")
         cleanup.textContent = "pinewood-home-v2 .hero-blob, pinewood-home-v2 .hero-blob-a, pinewood-home-v2 .hero-blob-b { display: none !important; } pinewood-home-v2 section.benefits, pinewood-home-v2 section.guarantees, pinewood-home-v2 section.final-cta { display: none !important; }"
-          + " pinewood-home-v2{display:block;width:100%;max-width:100vw;overflow-x:hidden;box-sizing:border-box}"
-          + " pinewood-home-v2 *{max-width:100%;box-sizing:border-box}"
-          + " pinewood-home-v2 img,pinewood-home-v2 video,pinewood-home-v2 iframe{height:auto}"
           + " @media (max-width:600px){"
-          + "  pinewood-home-v2 .hero h1,pinewood-home-v2 h1{font-size:clamp(1.9rem,8vw,2.8rem) !important;line-height:1.05 !important;letter-spacing:-.02em !important}"
-          + "  pinewood-home-v2 .hero .sub,pinewood-home-v2 .lede{font-size:1rem !important;line-height:1.5 !important}"
-          + "  pinewood-home-v2 h2{font-size:clamp(1.5rem,6vw,2.1rem) !important;line-height:1.15 !important}"
-          + "  pinewood-home-v2 h3{font-size:clamp(1.2rem,5vw,1.6rem) !important}"
-          + "  pinewood-home-v2 .fork,pinewood-home-v2 .grid-2,pinewood-home-v2 .cols-2,pinewood-home-v2 [class*='2col']{grid-template-columns:1fr !important;gap:14px !important}"
-          + "  pinewood-home-v2 .wrap,pinewood-home-v2 .container,pinewood-home-v2 section,pinewood-home-v2 .hero{padding-left:18px !important;padding-right:18px !important}"
-          + "  pinewood-home-v2 .fcard,pinewood-home-v2 .card{padding:22px 20px !important}"
-          + "  pinewood-home-v2 .fbtn,pinewood-home-v2 .btn{width:100% !important;justify-content:center !important;padding:14px 16px !important}"
-          + "  pinewood-home-v2 .site-head,pinewood-home-v2 footer,pinewood-home-v2 .site-foot{display:none !important}"
+          + "  pinewood-home-v2 .hero h1{font-size:clamp(1.9rem,8vw,2.8rem) !important;line-height:1.05 !important;letter-spacing:-.02em !important}"
+          + "  pinewood-home-v2 .hero .sub{font-size:1rem !important;line-height:1.5 !important}"
+          + "  pinewood-home-v2 .fork{grid-template-columns:1fr !important;gap:14px !important}"
+          + "  pinewood-home-v2 .wrap,pinewood-home-v2 .hero{padding-left:18px !important;padding-right:18px !important}"
+          + "  pinewood-home-v2 .fcard{padding:22px 20px !important}"
+          + "  pinewood-home-v2 .fbtn{width:100% !important;justify-content:center !important;padding:14px 16px !important}"
           + " }";
         host.appendChild(cleanup);
 
