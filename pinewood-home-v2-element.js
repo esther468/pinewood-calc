@@ -154,13 +154,23 @@
         //   - guarantees ("Three guarantees in writing")
         //   - final-cta ("Tailored financing, sized to your business")
         cleanup.textContent = "pinewood-home-v2 .hero-blob, pinewood-home-v2 .hero-blob-a, pinewood-home-v2 .hero-blob-b { display: none !important; } pinewood-home-v2 section.benefits, pinewood-home-v2 section.guarantees, pinewood-home-v2 section.final-cta { display: none !important; }"
-          + " @media (max-width:600px){"
-          + "  pinewood-home-v2 .hero h1{font-size:clamp(1.9rem,8vw,2.8rem) !important;line-height:1.05 !important;letter-spacing:-.02em !important}"
-          + "  pinewood-home-v2 .hero .sub{font-size:1rem !important;line-height:1.5 !important}"
-          + "  pinewood-home-v2 .fork{grid-template-columns:1fr !important;gap:14px !important}"
-          + "  pinewood-home-v2 .wrap,pinewood-home-v2 .hero{padding-left:18px !important;padding-right:18px !important}"
+          + " @media (max-width:768px){"
+          // Hide the decorative laptop mockup entirely on mobile — it's too wide and overlaps the hero text
+          + "  pinewood-home-v2 .hero-visual,pinewood-home-v2 .device,pinewood-home-v2 .device-screen,pinewood-home-v2 .hero-bg{display:none !important}"
+          // Force hero into single-column flow
+          + "  pinewood-home-v2 .hero{display:block !important;padding-left:18px !important;padding-right:18px !important;padding-top:24px !important;padding-bottom:32px !important;min-height:0 !important}"
+          + "  pinewood-home-v2 .hero .container,pinewood-home-v2 .hero > .container{display:block !important;grid-template-columns:1fr !important;width:100% !important;max-width:100% !important;padding:0 !important;margin:0 !important}"
+          + "  pinewood-home-v2 .hero-text{width:100% !important;max-width:100% !important;text-align:left !important}"
+          + "  pinewood-home-v2 .hero h1,pinewood-home-v2 .display{font-size:clamp(2rem,9vw,2.8rem) !important;line-height:1.05 !important;letter-spacing:-.02em !important;white-space:normal !important;word-break:normal !important}"
+          + "  pinewood-home-v2 .hero .sub,pinewood-home-v2 .lede{font-size:1.02rem !important;line-height:1.5 !important;max-width:100% !important}"
+          + "  pinewood-home-v2 .hero-cta{flex-direction:column !important;align-items:stretch !important;width:100% !important}"
+          + "  pinewood-home-v2 .hero-cta .btn,pinewood-home-v2 .btn{width:100% !important;justify-content:center !important;padding:14px 16px !important;min-height:48px !important;box-sizing:border-box !important}"
+          // Fork section (the two cards)
+          + "  pinewood-home-v2 .fork{grid-template-columns:1fr !important;gap:14px !important;padding:0 18px !important}"
           + "  pinewood-home-v2 .fcard{padding:22px 20px !important}"
-          + "  pinewood-home-v2 .fbtn{width:100% !important;justify-content:center !important;padding:14px 16px !important}"
+          + "  pinewood-home-v2 .fcard .fbtn{width:100% !important;justify-content:center !important;padding:14px 16px !important}"
+          // General containers
+          + "  pinewood-home-v2 .wrap,pinewood-home-v2 .container{padding-left:18px !important;padding-right:18px !important}"
           + " }";
         host.appendChild(cleanup);
 
