@@ -234,9 +234,6 @@
       // Also remove the empty footer placeholder.
       const cleanup = document.createElement("style");
       cleanup.textContent = TAG + " .site-head { display: none !important; } " + TAG + " footer { display: none !important; }"
-        + " " + TAG + "{display:block;width:100%;max-width:100vw;overflow-x:hidden;box-sizing:border-box;font-size:16px}"
-        + " " + TAG + " *{max-width:100%;box-sizing:border-box}"
-        + " " + TAG + " img,"+TAG+" video,"+TAG+" iframe{height:auto}"
         + " @media (max-width:600px){"
         + "  " + TAG + " .hero h1,"+TAG+" h1{font-size:clamp(2rem,9vw,3rem) !important;line-height:1.05 !important}"
         + "  " + TAG + " h2,"+TAG+" .qhead{font-size:clamp(1.4rem,6vw,1.9rem) !important;line-height:1.15 !important}"
