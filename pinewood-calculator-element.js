@@ -68,11 +68,11 @@
         for (const s of styles) host.appendChild(s.cloneNode(true));
 
         // Mobile-fit overrides — keep the calc inside the viewport on phones.
+        // NOTE: do NOT set width/max-width/overflow on the host element itself
+        // — that conflicts with Wix's --custom-element-height wrapper and
+        // makes the page collapse to blank.
         const mobileFix = document.createElement("style");
         mobileFix.textContent = ""
-          + "pinewood-calculator{display:block;width:100%;max-width:100vw;overflow-x:hidden;box-sizing:border-box}"
-          + "pinewood-calculator *{max-width:100%;box-sizing:border-box}"
-          + "pinewood-calculator img,pinewood-calculator video,pinewood-calculator iframe{height:auto}"
           + "@media (max-width:600px){"
           + " pinewood-calculator h1{font-size:clamp(1.7rem,7vw,2.4rem) !important;line-height:1.1 !important}"
           + " pinewood-calculator h2{font-size:clamp(1.3rem,5.5vw,1.9rem) !important;line-height:1.15 !important}"
