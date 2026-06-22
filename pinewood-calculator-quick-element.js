@@ -92,6 +92,25 @@
           scoped.textContent = scopeCss(s.textContent || "");
           host.appendChild(scoped);
         }
+        // Mobile-fit overrides
+        const mobileFix = document.createElement("style");
+        mobileFix.textContent = ""
+          + "pinewood-calculator-quick{display:block;width:100%;max-width:100vw;overflow-x:hidden;box-sizing:border-box}"
+          + "pinewood-calculator-quick *{max-width:100%;box-sizing:border-box}"
+          + "pinewood-calculator-quick img,pinewood-calculator-quick video,pinewood-calculator-quick iframe{height:auto}"
+          + "@media (max-width:600px){"
+          + " pinewood-calculator-quick h1{font-size:clamp(1.7rem,7vw,2.4rem) !important;line-height:1.1 !important}"
+          + " pinewood-calculator-quick h2{font-size:clamp(1.3rem,5.5vw,1.9rem) !important;line-height:1.15 !important}"
+          + " pinewood-calculator-quick h3{font-size:clamp(1.1rem,4.5vw,1.5rem) !important}"
+          + " pinewood-calculator-quick .row,pinewood-calculator-quick .grid,pinewood-calculator-quick [class*='cols-2'],pinewood-calculator-quick [class*='grid-2'],pinewood-calculator-quick .offer-grid{grid-template-columns:1fr !important;gap:12px !important}"
+          + " pinewood-calculator-quick section,pinewood-calculator-quick .container,pinewood-calculator-quick .wrap,pinewood-calculator-quick .pw,pinewood-calculator-quick .step,pinewood-calculator-quick .frame{padding-left:18px !important;padding-right:18px !important}"
+          + " pinewood-calculator-quick .card,pinewood-calculator-quick .panel{padding:18px 16px !important}"
+          + " pinewood-calculator-quick .btn,pinewood-calculator-quick button:not(.choice):not(.iconbtn):not([class*='close']):not([class*='link']){min-height:44px}"
+          + " pinewood-calculator-quick .nav-row,pinewood-calculator-quick .actions{flex-direction:column-reverse !important;gap:10px !important}"
+          + " pinewood-calculator-quick .nav-row .btn,pinewood-calculator-quick .actions .btn{width:100% !important;justify-content:center !important}"
+          + " pinewood-calculator-quick input,pinewood-calculator-quick select,pinewood-calculator-quick textarea{font-size:16px !important}"
+          + "}";
+        host.appendChild(mobileFix);
         const body = doc.body;
         if (body) {
           if (body.hasAttribute("data-variant")) host.setAttribute("data-variant", body.getAttribute("data-variant"));
