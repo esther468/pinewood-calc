@@ -95,9 +95,6 @@
         // Mobile-fit overrides
         const mobileFix = document.createElement("style");
         mobileFix.textContent = ""
-          + "pinewood-calculator-quick{display:block;width:100%;max-width:100vw;overflow-x:hidden;box-sizing:border-box}"
-          + "pinewood-calculator-quick *{max-width:100%;box-sizing:border-box}"
-          + "pinewood-calculator-quick img,pinewood-calculator-quick video,pinewood-calculator-quick iframe{height:auto}"
           + "@media (max-width:600px){"
           + " pinewood-calculator-quick h1{font-size:clamp(1.7rem,7vw,2.4rem) !important;line-height:1.1 !important}"
           + " pinewood-calculator-quick h2{font-size:clamp(1.3rem,5.5vw,1.9rem) !important;line-height:1.15 !important}"
