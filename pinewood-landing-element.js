@@ -234,20 +234,60 @@
       // Also remove the empty footer placeholder.
       const cleanup = document.createElement("style");
       cleanup.textContent = TAG + " .site-head { display: none !important; } " + TAG + " footer { display: none !important; }"
+        // ============================================================
+        // Mobile redesign — clean, generous, breathable. Goal: feel
+        // designed for the phone, not crammed into one.
+        // ============================================================
         + " @media (max-width:600px){"
-        + "  " + TAG + " .hero h1,"+TAG+" h1{font-size:clamp(2rem,9vw,3rem) !important;line-height:1.05 !important}"
-        + "  " + TAG + " h2,"+TAG+" .qhead{font-size:clamp(1.4rem,6vw,1.9rem) !important;line-height:1.15 !important}"
-        + "  " + TAG + " h3{font-size:clamp(1.15rem,4.8vw,1.5rem) !important}"
-        + "  " + TAG + " .lede,"+TAG+" .hero .sub{font-size:1rem !important;line-height:1.5 !important}"
-        + "  " + TAG + " .fork,"+TAG+" .choice-grid,"+TAG+" .grid-2,"+TAG+" [class*='2col']{grid-template-columns:1fr !important;gap:14px !important}"
-        + "  " + TAG + " .wrap,"+TAG+" .container,"+TAG+" section,"+TAG+" .hero,"+TAG+" .pw{padding-left:18px !important;padding-right:18px !important}"
-        + "  " + TAG + " .fcard,"+TAG+" .card{padding:22px 18px !important}"
-        + "  " + TAG + " .fbtn,"+TAG+" .btn{width:100% !important;justify-content:center !important;padding:14px 16px !important;min-height:44px}"
-        + "  " + TAG + " .choice{padding:16px 14px !important}"
-        + "  " + TAG + " .nm{font-size:1.05em !important}"
-        + "  " + TAG + " .tg{font-size:.85em !important}"
-        + "  " + TAG + " .nav-row{flex-direction:column-reverse !important;gap:10px !important}"
-        + "  " + TAG + " input,"+TAG+" select,"+TAG+" textarea{font-size:16px !important}"
+        // ---------- HERO ----------
+        + "  " + TAG + " .hero{padding:36px 22px 28px !important;text-align:center !important}"
+        + "  " + TAG + " .hero h1,"+TAG+" h1{font-size:clamp(2.4rem,11vw,3.3rem) !important;line-height:.98 !important;letter-spacing:-.025em !important;margin-bottom:18px !important}"
+        + "  " + TAG + " .hero .lede,"+TAG+" .lede{font-size:1.05rem !important;line-height:1.55 !important;max-width:34ch !important;margin:0 auto 6px !important;color:var(--ink-2) !important}"
+        + "  " + TAG + " .micro,"+TAG+" .hero .micro{font-size:.88rem !important;color:var(--mute) !important;margin-top:14px !important;letter-spacing:.01em !important}"
+        // ---------- TRUST ROW (Trustpilot / BBB / Funded fast pills) ----------
+        + "  " + TAG + " .trustrow{display:flex !important;flex-direction:column !important;align-items:center !important;gap:10px !important;margin:28px auto 0 !important;padding:0 8px !important}"
+        + "  " + TAG + " .trustrow > *{width:100% !important;max-width:300px !important;justify-content:center !important}"
+        + "  " + TAG + " .fpill{padding:10px 16px !important;justify-content:center !important;width:100% !important;box-sizing:border-box !important;border-radius:12px !important}"
+        + "  " + TAG + " .fpill .ft{text-align:left !important}"
+        + "  " + TAG + " .bbb{transform:scale(.95) !important}"
+        // ---------- THE FORK (two cards) ----------
+        + "  " + TAG + " .fork{display:flex !important;flex-direction:column !important;gap:18px !important;margin:44px 0 0 !important;padding:0 18px !important;max-width:100% !important}"
+        + "  " + TAG + " .fcard{padding:30px 24px !important;border-radius:18px !important;border-width:1px !important;display:flex !important;flex-direction:column !important;box-shadow:0 8px 24px -16px rgba(26,20,16,.18) !important}"
+        + "  " + TAG + " .fcard .fe{font-size:.7rem !important;letter-spacing:.16em !important;margin-bottom:14px !important}"
+        + "  " + TAG + " .fcard h3{font-size:1.55rem !important;line-height:1.12 !important;letter-spacing:-.015em !important;margin:0 0 12px !important}"
+        + "  " + TAG + " .fcard p{font-size:.97rem !important;line-height:1.55 !important;margin:0 0 22px !important;color:var(--ink-2) !important}"
+        + "  " + TAG + " .fcard.primary p{color:rgba(255,255,255,.82) !important}"
+        + "  " + TAG + " .fcard .fbtn,"+TAG+" .fbtn{display:flex !important;width:100% !important;justify-content:center !important;align-items:center !important;gap:8px !important;padding:16px 20px !important;min-height:54px !important;border-radius:12px !important;font-size:1rem !important;font-weight:600 !important;margin-top:auto !important;box-sizing:border-box !important}"
+        // ---------- FORK FOOTER ----------
+        + "  " + TAG + " .fork-foot{text-align:center !important;font-size:.88rem !important;line-height:1.5 !important;margin:32px 22px 16px !important;color:var(--mute) !important}"
+        // ---------- SIMULATOR PAGES (when user clicks Growth Audit) ----------
+        + "  " + TAG + " .pw{padding:20px 18px 36px !important;gap:18px !important}"
+        + "  " + TAG + " .backbar{padding:14px 18px 0 !important}"
+        + "  " + TAG + " .qhead{font-size:1.55rem !important;line-height:1.15 !important;letter-spacing:-.01em !important}"
+        + "  " + TAG + " .eyebrow{font-size:.78rem !important;letter-spacing:.16em !important}"
+        + "  " + TAG + " .choice-grid{grid-template-columns:1fr !important;gap:10px !important}"
+        + "  " + TAG + " .choice{padding:18px 16px !important;border-radius:12px !important;min-height:64px !important}"
+        + "  " + TAG + " .choice .nm{font-size:1.05rem !important;line-height:1.2 !important}"
+        + "  " + TAG + " .choice .tg{font-size:.83rem !important;line-height:1.4 !important;color:var(--ink-2) !important}"
+        + "  " + TAG + " .choice .ico{width:36px !important;height:36px !important;flex-shrink:0 !important}"
+        + "  " + TAG + " .card{padding:22px 20px !important;border-radius:14px !important}"
+        + "  " + TAG + " .fld{margin-bottom:4px !important}"
+        + "  " + TAG + " .fld label{font-size:.92rem !important;margin-bottom:8px !important;font-weight:600 !important}"
+        + "  " + TAG + " .helper{font-size:.82rem !important;margin-top:6px !important;line-height:1.4 !important}"
+        + "  " + TAG + " .nav-row{display:flex !important;flex-direction:column-reverse !important;gap:10px !important;margin-top:8px !important}"
+        + "  " + TAG + " .nav-row .btn{width:100% !important;justify-content:center !important;min-height:52px !important;padding:14px 20px !important;font-size:1rem !important;border-radius:12px !important}"
+        // Inputs at 16px (prevents iOS zoom on focus)
+        + "  " + TAG + " input,"+TAG+" select,"+TAG+" textarea{font-size:16px !important;padding:12px 14px !important;border-radius:10px !important}"
+        + "  " + TAG + " .input-wrap.has-pre input{padding-left:32px !important}"
+        // Results page
+        + "  " + TAG + " .amt{font-size:2rem !important;line-height:1 !important}"
+        + "  " + TAG + " .stat-row{grid-template-columns:1fr !important;gap:10px !important}"
+        + "  " + TAG + " .narrative{font-size:.95rem !important;padding:18px 16px !important}"
+        + "  " + TAG + " .cta-block{padding:22px 18px !important}"
+        + "  " + TAG + " .cta-block .ctah{font-size:1.05rem !important}"
+        + "  " + TAG + " .cta-block .ctas{font-size:.92rem !important;margin-bottom:16px !important}"
+        + "  " + TAG + " .btn-mega{width:100% !important;justify-content:center !important;padding:16px 20px !important;font-size:1rem !important;min-height:56px !important;border-radius:12px !important}"
+        + "  " + TAG + " .disclaim{font-size:.78rem !important;line-height:1.55 !important;padding:0 6px !important}"
         + " }";
       host.appendChild(cleanup);
 
