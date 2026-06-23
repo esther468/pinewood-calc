@@ -162,12 +162,19 @@
           + "  pinewood-home-v2 .hero .container,pinewood-home-v2 .hero > .container{display:block !important;grid-template-columns:1fr !important;width:100% !important;max-width:100% !important;padding:0 !important;margin:0 !important}"
           + "  pinewood-home-v2 .hero-text{width:100% !important;max-width:100% !important;text-align:left !important}"
           + "  pinewood-home-v2 .hero h1,pinewood-home-v2 .display{font-size:clamp(1.85rem,8vw,2.6rem) !important;line-height:1.08 !important;letter-spacing:-.02em !important;white-space:normal !important;word-break:normal !important;hyphens:auto !important}"
-          // The "Free offer calculator" CTA section further down — was bleeding off the right edge
-          + "  pinewood-home-v2 .calc-cta-card{display:block !important;padding:24px 18px !important;margin:0 !important;width:100% !important;max-width:100% !important;box-sizing:border-box !important}"
-          + "  pinewood-home-v2 .calc-cta-text{width:100% !important;max-width:100% !important;padding:0 !important}"
-          + "  pinewood-home-v2 .calc-cta-text h2,pinewood-home-v2 .calc-cta-text .display{font-size:clamp(1.6rem,7vw,2.2rem) !important;line-height:1.1 !important;word-break:normal !important;overflow-wrap:break-word !important}"
-          + "  pinewood-home-v2 .calc-cta-text p{font-size:.98rem !important;line-height:1.5 !important}"
+          // The "Free offer calculator" CTA section was bleeding — 2-col grid with 64px padding + fixed-size mock
+          + "  pinewood-home-v2 .calc-cta-card{display:flex !important;flex-direction:column !important;grid-template-columns:1fr !important;gap:28px !important;padding:28px 20px !important;margin:0 16px !important;width:auto !important;max-width:calc(100vw - 32px) !important;box-sizing:border-box !important;overflow:hidden !important}"
+          + "  pinewood-home-v2 .calc-cta-text{width:100% !important;max-width:100% !important;padding:0 !important;box-sizing:border-box !important}"
+          + "  pinewood-home-v2 .calc-cta-text .display,pinewood-home-v2 .calc-cta-text h2{font-size:clamp(1.5rem,6.5vw,2.05rem) !important;line-height:1.1 !important;word-break:normal !important;overflow-wrap:break-word !important;max-width:100% !important;margin:10px 0 14px !important}"
+          + "  pinewood-home-v2 .calc-cta-text p{font-size:.98rem !important;line-height:1.5 !important;max-width:100% !important;margin:0 0 22px !important}"
           + "  pinewood-home-v2 .calc-cta-card .btn,pinewood-home-v2 .calc-cta-text .btn{width:100% !important;justify-content:center !important;padding:14px 16px !important;min-height:48px !important;box-sizing:border-box !important;white-space:normal !important}"
+          // The calculator mock preview — was fixed-size, shrink it to fit
+          + "  pinewood-home-v2 .calc-cta-mock{width:100% !important;max-width:100% !important;padding:18px !important;box-sizing:border-box !important;border-radius:14px !important}"
+          + "  pinewood-home-v2 .ccm-val{font-size:18px !important}"
+          + "  pinewood-home-v2 .ccm-lbl{font-size:12px !important}"
+          // The parent section was set to padding: 140px 0 — shrink for mobile
+          + "  pinewood-home-v2 section[data-screen-label*='Calculator'],pinewood-home-v2 section[data-screen-label*='alculator']{padding:48px 0 !important}"
+          + "  pinewood-home-v2 section[data-screen-label*='Calculator'] .container,pinewood-home-v2 section[data-screen-label*='alculator'] .container{padding:0 !important;max-width:100% !important;width:100% !important;box-sizing:border-box !important}"
           // Generic protection for any section's headline bleeding
           + "  pinewood-home-v2 h2,pinewood-home-v2 .sec-title{word-break:normal !important;overflow-wrap:break-word !important;hyphens:auto !important}"
           + "  pinewood-home-v2 section,pinewood-home-v2 .container{box-sizing:border-box !important;overflow-wrap:break-word !important}"
