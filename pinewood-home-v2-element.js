@@ -161,7 +161,16 @@
           + "  pinewood-home-v2 .hero{display:block !important;padding-left:18px !important;padding-right:18px !important;padding-top:24px !important;padding-bottom:32px !important;min-height:0 !important}"
           + "  pinewood-home-v2 .hero .container,pinewood-home-v2 .hero > .container{display:block !important;grid-template-columns:1fr !important;width:100% !important;max-width:100% !important;padding:0 !important;margin:0 !important}"
           + "  pinewood-home-v2 .hero-text{width:100% !important;max-width:100% !important;text-align:left !important}"
-          + "  pinewood-home-v2 .hero h1,pinewood-home-v2 .display{font-size:clamp(2rem,9vw,2.8rem) !important;line-height:1.05 !important;letter-spacing:-.02em !important;white-space:normal !important;word-break:normal !important}"
+          + "  pinewood-home-v2 .hero h1,pinewood-home-v2 .display{font-size:clamp(1.85rem,8vw,2.6rem) !important;line-height:1.08 !important;letter-spacing:-.02em !important;white-space:normal !important;word-break:normal !important;hyphens:auto !important}"
+          // The "Free offer calculator" CTA section further down — was bleeding off the right edge
+          + "  pinewood-home-v2 .calc-cta-card{display:block !important;padding:24px 18px !important;margin:0 !important;width:100% !important;max-width:100% !important;box-sizing:border-box !important}"
+          + "  pinewood-home-v2 .calc-cta-text{width:100% !important;max-width:100% !important;padding:0 !important}"
+          + "  pinewood-home-v2 .calc-cta-text h2,pinewood-home-v2 .calc-cta-text .display{font-size:clamp(1.6rem,7vw,2.2rem) !important;line-height:1.1 !important;word-break:normal !important;overflow-wrap:break-word !important}"
+          + "  pinewood-home-v2 .calc-cta-text p{font-size:.98rem !important;line-height:1.5 !important}"
+          + "  pinewood-home-v2 .calc-cta-card .btn,pinewood-home-v2 .calc-cta-text .btn{width:100% !important;justify-content:center !important;padding:14px 16px !important;min-height:48px !important;box-sizing:border-box !important;white-space:normal !important}"
+          // Generic protection for any section's headline bleeding
+          + "  pinewood-home-v2 h2,pinewood-home-v2 .sec-title{word-break:normal !important;overflow-wrap:break-word !important;hyphens:auto !important}"
+          + "  pinewood-home-v2 section,pinewood-home-v2 .container{box-sizing:border-box !important;overflow-wrap:break-word !important}"
           + "  pinewood-home-v2 .hero .sub,pinewood-home-v2 .lede{font-size:1.02rem !important;line-height:1.5 !important;max-width:100% !important}"
           + "  pinewood-home-v2 .hero-cta{flex-direction:column !important;align-items:stretch !important;width:100% !important}"
           + "  pinewood-home-v2 .hero-cta .btn,pinewood-home-v2 .btn{width:100% !important;justify-content:center !important;padding:14px 16px !important;min-height:48px !important;box-sizing:border-box !important}"
