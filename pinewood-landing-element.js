@@ -235,31 +235,26 @@
       const cleanup = document.createElement("style");
       cleanup.textContent = TAG + " .site-head { display: none !important; } " + TAG + " footer { display: none !important; }"
         // ============================================================
-        // Mobile redesign — clean, generous, breathable. Goal: feel
-        // designed for the phone, not crammed into one.
+        // Mobile — SIMPLE & EASY. Strip noise. Big hero, two clean
+        // cards stacked, generous space. Nothing else.
         // ============================================================
         + " @media (max-width:600px){"
-        // ---------- HERO ----------
-        + "  " + TAG + " .hero{padding:36px 22px 28px !important;text-align:center !important}"
-        + "  " + TAG + " .hero h1,"+TAG+" h1{font-size:clamp(2.4rem,11vw,3.3rem) !important;line-height:.98 !important;letter-spacing:-.025em !important;margin-bottom:18px !important}"
-        + "  " + TAG + " .hero .lede,"+TAG+" .lede{font-size:1.05rem !important;line-height:1.55 !important;max-width:34ch !important;margin:0 auto 6px !important;color:var(--ink-2) !important}"
-        + "  " + TAG + " .micro,"+TAG+" .hero .micro{font-size:.88rem !important;color:var(--mute) !important;margin-top:14px !important;letter-spacing:.01em !important}"
-        // ---------- TRUST ROW (Trustpilot / BBB / Funded fast pills) ----------
-        + "  " + TAG + " .trustrow{display:flex !important;flex-direction:column !important;align-items:center !important;gap:10px !important;margin:28px auto 0 !important;padding:0 8px !important}"
-        + "  " + TAG + " .trustrow > *{width:100% !important;max-width:300px !important;justify-content:center !important}"
-        + "  " + TAG + " .fpill{padding:10px 16px !important;justify-content:center !important;width:100% !important;box-sizing:border-box !important;border-radius:12px !important}"
-        + "  " + TAG + " .fpill .ft{text-align:left !important}"
-        + "  " + TAG + " .bbb{transform:scale(.95) !important}"
-        // ---------- THE FORK (two cards) ----------
-        + "  " + TAG + " .fork{display:flex !important;flex-direction:column !important;gap:18px !important;margin:44px 0 0 !important;padding:0 18px !important;max-width:100% !important}"
-        + "  " + TAG + " .fcard{padding:30px 24px !important;border-radius:18px !important;border-width:1px !important;display:flex !important;flex-direction:column !important;box-shadow:0 8px 24px -16px rgba(26,20,16,.18) !important}"
-        + "  " + TAG + " .fcard .fe{font-size:.7rem !important;letter-spacing:.16em !important;margin-bottom:14px !important}"
-        + "  " + TAG + " .fcard h3{font-size:1.55rem !important;line-height:1.12 !important;letter-spacing:-.015em !important;margin:0 0 12px !important}"
-        + "  " + TAG + " .fcard p{font-size:.97rem !important;line-height:1.55 !important;margin:0 0 22px !important;color:var(--ink-2) !important}"
-        + "  " + TAG + " .fcard.primary p{color:rgba(255,255,255,.82) !important}"
+        // ---------- HIDE NOISE ----------
+        + "  " + TAG + " .trustrow{display:none !important}"
+        + "  " + TAG + " .fork-foot{display:none !important}"
+        + "  " + TAG + " .hero .micro,"+TAG+" .micro{display:none !important}"
+        // ---------- HERO — clean and minimal ----------
+        + "  " + TAG + " .hero{padding:48px 24px 28px !important;text-align:center !important}"
+        + "  " + TAG + " .hero h1,"+TAG+" h1{font-size:2.7rem !important;line-height:1 !important;letter-spacing:-.025em !important;margin:0 0 16px !important;font-weight:600 !important}"
+        + "  " + TAG + " .hero .lede,"+TAG+" .lede{font-size:1.05rem !important;line-height:1.5 !important;max-width:30ch !important;margin:0 auto !important;color:var(--ink-2) !important}"
+        // ---------- TWO CARDS — stacked, generous, simple ----------
+        + "  " + TAG + " .fork{display:flex !important;flex-direction:column !important;gap:16px !important;margin:36px 0 36px !important;padding:0 24px !important;max-width:100% !important}"
+        + "  " + TAG + " .fcard{padding:32px 26px !important;border-radius:16px !important;display:flex !important;flex-direction:column !important;box-shadow:0 4px 16px -8px rgba(26,20,16,.12) !important}"
+        + "  " + TAG + " .fcard .fe{font-size:.72rem !important;letter-spacing:.14em !important;margin-bottom:14px !important;font-weight:700 !important}"
+        + "  " + TAG + " .fcard h3{font-size:1.55rem !important;line-height:1.1 !important;letter-spacing:-.015em !important;margin:0 0 14px !important;font-weight:600 !important}"
+        + "  " + TAG + " .fcard p{font-size:.95rem !important;line-height:1.5 !important;margin:0 0 22px !important;color:var(--ink-2) !important}"
+        + "  " + TAG + " .fcard.primary p{color:rgba(255,255,255,.78) !important}"
         + "  " + TAG + " .fcard .fbtn,"+TAG+" .fbtn{display:flex !important;width:100% !important;justify-content:center !important;align-items:center !important;gap:8px !important;padding:16px 20px !important;min-height:54px !important;border-radius:12px !important;font-size:1rem !important;font-weight:600 !important;margin-top:auto !important;box-sizing:border-box !important}"
-        // ---------- FORK FOOTER ----------
-        + "  " + TAG + " .fork-foot{text-align:center !important;font-size:.88rem !important;line-height:1.5 !important;margin:32px 22px 16px !important;color:var(--mute) !important}"
         // ---------- SIMULATOR PAGES (when user clicks Growth Audit) ----------
         + "  " + TAG + " .pw{padding:20px 18px 36px !important;gap:18px !important}"
         + "  " + TAG + " .backbar{padding:14px 18px 0 !important}"
