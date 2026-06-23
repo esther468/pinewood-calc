@@ -260,6 +260,7 @@
         }
         wireOfferCards();
         new MutationObserver(wireOfferCards).observe(host, { childList: true, subtree: true });
+
       } catch (err) {
         console.error("[" + scope + "] failed to render:", err);
         host.innerHTML = "<p style=\"padding:24px;font-family:sans-serif\">Page failed to load. Please refresh.</p>";
@@ -268,6 +269,11 @@
   }
 
   function wireEmailCapture() {
+    // GLOBAL guard — Wix may instantiate the custom element multiple times.
+    // Without this, each instance chains another wrapper around window.goP,
+    // making goP("3a") fire send("partial") N times (2-3 dup emails per submit).
+    if (window.__PW_EMAIL_WIRED_V2) return;
+    window.__PW_EMAIL_WIRED_V2 = true;
     let partialSent = false;
     function val(id){ const el = document.getElementById(id); return el ? (el.value || "") : ""; }
     function fmtMoney(n){
@@ -379,7 +385,10 @@
         }
         return _goP.apply(this, arguments);
       };
+      let fullSending = false;
       window.subApp = function(){
+        if (fullSending) return;
+        fullSending = true;
         const btn = document.getElementById("subBtn");
         if (btn) { btn.textContent = "Submitting…"; btn.disabled = true; }
         send("full", true).then(ok => {
