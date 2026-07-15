@@ -260,6 +260,7 @@
         }
         wireOfferCards();
         new MutationObserver(wireOfferCards).observe(host, { childList: true, subtree: true });
+
       } catch (err) {
         console.error("[" + scope + "] failed to render:", err);
         host.innerHTML = "<p style=\"padding:24px;font-family:sans-serif\">Page failed to load. Please refresh.</p>";
@@ -302,9 +303,22 @@
       };
     }
     function leadLabel(d){ return (d.business_name||"").trim() || ((d.first_name||"")+" "+(d.last_name||"")).trim() || "Unknown lead"; }
+    // Extract the referral partner # from the URL path.
+    //   /apply-now-22 → "22"
+    //   /apply-now-3  → "3"
+    //   /new-app       → null (direct, no partner)
+    // Falls back to null when no match, so direct submissions still work.
+    function referralPartner(){
+      try {
+        const m = (window.location.pathname || "").match(/\/apply-now-(\d+)/);
+        return m ? m[1] : null;
+      } catch (_) { return null; }
+    }
     function buildBody(d, kind){
+      const partner = referralPartner();
       const order = [
         ["Source", d.source],
+        ["Referral partner", partner ? ("#" + partner + " (via /apply-now-" + partner + ")") : ""],
         ["Lead type", kind === "partial" ? "PARTIAL — client did not finish" : "FULL SUBMISSION"],
         ["Business", d.business_name],
         ["Contact name", (d.first_name + " " + d.last_name).trim()],
@@ -337,15 +351,17 @@
     }
     async function send(kind, includeFiles){
       const d = gather();
+      const partner = referralPartner();
+      const partnerTag = partner ? (" · Partner #" + partner) : "";
       const subjectPrefix = (SOURCE_LABEL === "Application")
-        ? (kind === "partial" ? "[Application — Partial Lead] " : "[Application — Full Submission] ")
+        ? (kind === "partial" ? "[Application — Partial Lead" + partnerTag + "] " : "[Application — Full Submission" + partnerTag + "] ")
         : (kind === "partial" ? "[Calculator — Partial Lead] " : "[Calculator — Full Submission] ");
       const payload = {
         lead_type: SOURCE_LABEL.toLowerCase() + "_" + kind,
         subject: subjectPrefix + leadLabel(d),
         html_body: buildBody(d, kind),
         reply_to: d.email || "",
-        fields: d,
+        fields: Object.assign({}, d, { referral_partner: partner || null, referral_path: window.location.pathname }),
         attachments: []
       };
       if (includeFiles && window.__PW_STATE && window.__PW_STATE.files) {
