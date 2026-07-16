@@ -355,7 +355,14 @@
         r.readAsDataURL(f);
       });
     }
+    // Iron-clad dedup: any code path can fire "partial"/"full" at most once.
+    const __sent = {partial: false, full: false};
     async function send(kind, includeFiles){
+      if (__sent[kind]) {
+        console.log("[pinewood-application] duplicate " + kind + " send suppressed");
+        return true;
+      }
+      __sent[kind] = true;
       const d = gather();
       const partner = referralPartner();
       const partnerTag = partner ? (" · Partner #" + partner) : "";
