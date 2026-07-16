@@ -269,6 +269,12 @@
   }
 
   function wireEmailCapture() {
+    // GLOBAL guard — Wix may instantiate the custom element multiple times.
+    // Without this, each instance chains another wrapper around window.goP
+    // and each layer independently calls send("full") — causing 2-3 duplicate
+    // emails per submission.
+    if (window.__PW_EMAIL_WIRED_APP) return;
+    window.__PW_EMAIL_WIRED_APP = true;
     let partialSent = false;
     function val(id){ const el = document.getElementById(id); return el ? (el.value || "") : ""; }
     function fmtMoney(n){
@@ -395,7 +401,11 @@
         }
         return _goP.apply(this, arguments);
       };
+      let fullSending = false;
       window.subApp = function(){
+        // Prevent multiple submits from rapid clicks / double handlers.
+        if (fullSending) return;
+        fullSending = true;
         const btn = document.getElementById("subBtn");
         if (btn) { btn.textContent = "Submitting…"; btn.disabled = true; }
         send("full", true).then(ok => {
