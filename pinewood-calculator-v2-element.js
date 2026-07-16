@@ -341,7 +341,17 @@
         r.readAsDataURL(f);
       });
     }
+    // Iron-clad dedup: any code path can only successfully fire a "full"
+    // send exactly once per page load, and a "partial" send exactly once.
+    // Guards against the case where the calc's internal code invokes send()
+    // through channels my subApp wrapper doesn't intercept.
+    const __sent = {partial: false, full: false};
     async function send(kind, includeFiles){
+      if (__sent[kind]) {
+        console.log("[pinewood-calculator-v2] duplicate " + kind + " send suppressed");
+        return true;
+      }
+      __sent[kind] = true;
       const d = gather();
       const subjectPrefix = (SOURCE_LABEL === "Application")
         ? (kind === "partial" ? "[Application — Partial Lead] " : "[Application — Full Submission] ")
