@@ -392,8 +392,18 @@
       }
       try {
         const resp = await fetch(WIX_FUNCTION_URL, { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload) });
+        if (!resp.ok) {
+          // Let user retry — most likely payload too large.
+          __sent[kind] = false;
+          console.error("[pinewood-application] " + kind + " server returned " + resp.status);
+        }
         return resp.ok;
-      } catch (e) { console.error("[pinewood-application] " + kind + " send failed:", e); return false; }
+      } catch (e) {
+        // Network/other error — allow retry.
+        __sent[kind] = false;
+        console.error("[pinewood-application] " + kind + " send failed:", e);
+        return false;
+      }
     }
     function tryWrap(){
       if (typeof window.goP !== "function" || typeof window.subApp !== "function") return false;
