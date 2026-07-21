@@ -379,8 +379,16 @@
       }
       try {
         const resp = await fetch(WIX_FUNCTION_URL, { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload) });
+        if (!resp.ok) {
+          __sent[kind] = false;
+          console.error("[pinewood-calculator-v2] " + kind + " server returned " + resp.status);
+        }
         return resp.ok;
-      } catch (e) { console.error("[pinewood-calculator-v2] " + kind + " send failed:", e); return false; }
+      } catch (e) {
+        __sent[kind] = false;
+        console.error("[pinewood-calculator-v2] " + kind + " send failed:", e);
+        return false;
+      }
     }
     function tryWrap(){
       if (typeof window.goP !== "function" || typeof window.subApp !== "function") return false;
