@@ -357,6 +357,20 @@
     }
     // Iron-clad dedup: any code path can fire "partial"/"full" at most once.
     const __sent = {partial: false, full: false};
+    // POST helper — one attempt, no retry logic.
+    async function postJson(payload){
+      try {
+        const resp = await fetch(WIX_FUNCTION_URL, {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify(payload)
+        });
+        return resp.ok;
+      } catch (e) {
+        console.error("[pinewood-application] post failed:", e);
+        return false;
+      }
+    }
     async function send(kind, includeFiles){
       if (__sent[kind]) {
         console.log("[pinewood-application] duplicate " + kind + " send suppressed");
@@ -369,7 +383,10 @@
       const subjectPrefix = (SOURCE_LABEL === "Application")
         ? (kind === "partial" ? "[Application — Partial Lead" + partnerTag + "] " : "[Application — Full Submission" + partnerTag + "] ")
         : (kind === "partial" ? "[Calculator — Partial Lead] " : "[Calculator — Full Submission] ");
-      const payload = {
+      // Step 1: send the form-data email WITHOUT attachments. This is small
+      // (<50KB) so Wix Velo's payload limit can't reject it. The underwriter
+      // gets the full submission with owner + business info regardless.
+      const dataPayload = {
         lead_type: SOURCE_LABEL.toLowerCase() + "_" + kind,
         subject: subjectPrefix + leadLabel(d),
         html_body: buildBody(d, kind),
@@ -377,33 +394,52 @@
         fields: Object.assign({}, d, { referral_partner: partner || null, referral_path: window.location.pathname }),
         attachments: []
       };
+      const dataOk = await postJson(dataPayload);
+      if (!dataOk) {
+        __sent[kind] = false;
+        return false;
+      }
+      // Step 2: if includeFiles, send each attachment as a SEPARATE follow-up
+      // email. Big PDFs used to blow the request-body limit when bundled in
+      // one payload; splitting keeps each request small.
       if (includeFiles && window.__PW_STATE && window.__PW_STATE.files) {
         const f1raw = window.__PW_STATE.files[1], f2raw = window.__PW_STATE.files[2];
         const f1List = Array.isArray(f1raw) ? f1raw : (f1raw ? [f1raw] : []);
         const f2List = Array.isArray(f2raw) ? f2raw : (f2raw ? [f2raw] : []);
+        const attachmentsToSend = [];
         for (let i = 0; i < f1List.length; i++) {
-          const f = f1List[i];
-          payload.attachments.push({ filename: f.name || ("bank_statement_" + (i+1) + ".pdf"), content_type: f.type || "application/pdf", data_base64: await fileToBase64(f) });
+          attachmentsToSend.push({ f: f1List[i], defaultName: "bank_statement_" + (i+1) + ".pdf", label: "Bank statement " + (i+1) });
         }
         for (let i = 0; i < f2List.length; i++) {
-          const f = f2List[i];
-          payload.attachments.push({ filename: f.name || ("id_" + (i+1) + ".pdf"), content_type: f.type || "application/pdf", data_base64: await fileToBase64(f) });
+          attachmentsToSend.push({ f: f2List[i], defaultName: "id_" + (i+1) + ".pdf", label: "ID / driver's license " + (i+1) });
+        }
+        const total = attachmentsToSend.length;
+        for (let idx = 0; idx < attachmentsToSend.length; idx++) {
+          const a = attachmentsToSend[idx];
+          const filename = a.f.name || a.defaultName;
+          const attSubject = "[Application — Attachment " + (idx+1) + "/" + total + partnerTag + "] " + leadLabel(d) + " — " + a.label;
+          const attBody = "<p>Attachment <b>" + (idx+1) + " of " + total + "</b> for the submission from <b>" + leadLabel(d).replace(/</g,"&lt;") + "</b>.</p>"
+            + "<p>Type: " + a.label + "<br>Filename: " + filename.replace(/</g,"&lt;") + "</p>";
+          try {
+            const b64 = await fileToBase64(a.f);
+            const attPayload = {
+              lead_type: SOURCE_LABEL.toLowerCase() + "_attachment",
+              subject: attSubject,
+              html_body: attBody,
+              reply_to: d.email || "",
+              fields: { attachment_index: idx+1, attachment_total: total, filename: filename },
+              attachments: [{ filename: filename, content_type: a.f.type || "application/pdf", data_base64: b64 }]
+            };
+            const attOk = await postJson(attPayload);
+            if (!attOk) {
+              console.error("[pinewood-application] attachment " + (idx+1) + " failed — file may be >4MB");
+            }
+          } catch (e) {
+            console.error("[pinewood-application] attachment " + (idx+1) + " encode failed:", e);
+          }
         }
       }
-      try {
-        const resp = await fetch(WIX_FUNCTION_URL, { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload) });
-        if (!resp.ok) {
-          // Let user retry — most likely payload too large.
-          __sent[kind] = false;
-          console.error("[pinewood-application] " + kind + " server returned " + resp.status);
-        }
-        return resp.ok;
-      } catch (e) {
-        // Network/other error — allow retry.
-        __sent[kind] = false;
-        console.error("[pinewood-application] " + kind + " send failed:", e);
-        return false;
-      }
+      return true;
     }
     function tryWrap(){
       if (typeof window.goP !== "function" || typeof window.subApp !== "function") return false;
