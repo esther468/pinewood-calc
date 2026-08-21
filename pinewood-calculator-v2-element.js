@@ -308,7 +308,7 @@
       };
     }
     function leadLabel(d){ return (d.business_name||"").trim() || ((d.first_name||"")+" "+(d.last_name||"")).trim() || "Unknown lead"; }
-    function buildBody(d, kind){
+    function buildBody(d, kind, utms){
       const order = [
         ["Source", d.source],
         ["Lead type", kind === "partial" ? "PARTIAL — client did not finish" : "FULL SUBMISSION"],
@@ -328,6 +328,12 @@
         ["Existing debt", d.has_existing_debt],
         ["Debt positions", d.debt_positions], ["Debt balance", d.debt_balance]
       ];
+      // Append UTM attribution rows if any
+      if (utms) {
+        ["utm_source","utm_medium","utm_campaign","utm_content","utm_term","gclid","fbclid","li_fat_id"].forEach(function(k){
+          if (utms[k]) order.push([k.replace("utm_","UTM ").replace(/_/g," "), utms[k]]);
+        });
+      }
       const rows = order.filter(([k,v]) => v && String(v).trim())
         .map(([k,v]) => "<tr><td style=\"padding:4px 12px 4px 0;color:#666;vertical-align:top;white-space:nowrap\">" + k + "</td><td style=\"padding:4px 0\">" + String(v).replace(/</g,"&lt;") + "</td></tr>")
         .join("");
@@ -341,6 +347,98 @@
         r.readAsDataURL(f);
       });
     }
+    // ---- UTM capture (marketing attribution for LinkedIn ads etc.) ----
+    // Custom element runs in the parent Wix window, so window.location.search
+    // is the top-level URL. No iframe messaging needed.
+    function captureUtms(){
+      try {
+        const q = new URLSearchParams(window.location.search || "");
+        const out = {};
+        ["utm_source","utm_medium","utm_campaign","utm_content","utm_term","gclid","fbclid","li_fat_id"].forEach(k => {
+          const v = q.get(k);
+          if (v) out[k] = v;
+        });
+        return out;
+      } catch (_) { return {}; }
+    }
+    const __utms = captureUtms();
+    // ---- LinkedIn conversion tracking ----
+    // Insight Tag is loaded site-wide via Wix Custom Code. We just fire the
+    // conversion event on successful full submit. Guard for tag not loaded.
+    const LINTRK_CONVERSION_ID = 28037444; // Calculator conversion (LinkedIn)
+    function fireLinkedInConversion(){
+      try {
+        if (typeof window.lintrk === "function") {
+          window.lintrk("track", { conversion_id: LINTRK_CONVERSION_ID });
+          console.log("[pinewood-calculator-v2] LinkedIn conversion fired:", LINTRK_CONVERSION_ID);
+        } else {
+          // Queue via LinkedIn's standard _linkedin_partner_id/data_partner_ids
+          // pattern — the tag installs the real lintrk async, so try again later.
+          let tries = 0;
+          const iv = setInterval(function(){
+            tries++;
+            if (typeof window.lintrk === "function") {
+              window.lintrk("track", { conversion_id: LINTRK_CONVERSION_ID });
+              console.log("[pinewood-calculator-v2] LinkedIn conversion fired (delayed):", LINTRK_CONVERSION_ID);
+              clearInterval(iv);
+            } else if (tries > 40) {
+              console.warn("[pinewood-calculator-v2] window.lintrk never loaded — conversion NOT tracked");
+              clearInterval(iv);
+            }
+          }, 250);
+        }
+      } catch (e) { console.error("[pinewood-calculator-v2] lintrk error:", e); }
+    }
+    // ---- Applicant auto-report email ----
+    // On successful full submit, send the applicant a branded HTML summary
+    // of the pricing options they saw, so they have something to reference
+    // or forward. Uses same Velo endpoint with to_override=applicant email.
+    async function sendApplicantReport(d, utms){
+      if (!d || !d.email) return;
+      const S = (window.__PW_STATE || {});
+      // Build a summary — include what we have (selected product, amount, revenue, purpose).
+      const sel = S.sel || {};
+      const sName = sel.nm || d.selected_product || "your selected option";
+      const sAmt  = sel.amt ? fmtMoney(sel.amt) : (d.selected_amount || "");
+      const sApr  = sel.apr || sel.rate || "";
+      const sTerm = sel.term || sel.months || "";
+      const sPmt  = sel.weekly || sel.monthly || sel.payment || "";
+      const html = ""
+        + "<div style=\"background:#F5F2EC;padding:32px 20px;font-family:'Inter Tight','Helvetica Neue',Arial,sans-serif;color:#1A1410\">"
+        + "<div style=\"max-width:560px;margin:0 auto;background:#FFFBF3;border-radius:14px;padding:34px 28px;box-shadow:0 8px 24px -12px rgba(26,20,16,.14)\">"
+        + "<div style=\"font-family:'Fraunces',Georgia,serif;font-size:26px;line-height:1.15;font-weight:600;letter-spacing:-.01em;color:#1F4A32\">Your Pinewood funding options</div>"
+        + "<p style=\"margin:14px 0 20px;font-size:15px;line-height:1.55;color:#1A1410\">Hi " + escapeHtml((d.first_name||"").split(" ")[0] || "there") + ", thanks for using the Pinewood calculator. Here's a copy of what we sized for <b>" + escapeHtml(d.business_name || (d.first_name+" "+d.last_name).trim()) + "</b>.</p>"
+        + "<div style=\"border:1px solid #E4DFD6;border-radius:12px;padding:20px;background:#F5F2EC;margin:16px 0\">"
+        + "<div style=\"font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#6B6558;font-weight:700\">Selected option</div>"
+        + "<div style=\"font-family:'Fraunces',Georgia,serif;font-size:22px;font-weight:600;color:#1F4A32;margin-top:6px\">" + escapeHtml(sName) + "</div>"
+        + (sAmt  ? "<div style=\"margin-top:10px;font-size:14px\"><b>Funded amount:</b> " + escapeHtml(String(sAmt)) + "</div>" : "")
+        + (sApr  ? "<div style=\"margin-top:4px;font-size:14px\"><b>APR:</b> " + escapeHtml(String(sApr)) + "</div>" : "")
+        + (sTerm ? "<div style=\"margin-top:4px;font-size:14px\"><b>Term:</b> " + escapeHtml(String(sTerm)) + "</div>" : "")
+        + (sPmt  ? "<div style=\"margin-top:4px;font-size:14px\"><b>Payment:</b> " + escapeHtml(String(sPmt)) + "</div>" : "")
+        + "</div>"
+        + "<p style=\"margin:18px 0 8px;font-size:14px;line-height:1.55\"><b>What happens next:</b> An underwriter will reach out within one business day to walk you through the offer, answer questions, and finalise the paperwork. You can also reply directly to this email.</p>"
+        + "<div style=\"margin-top:24px\"><a href=\"https://www.pinewoodbusinesscapital.com/new-app\" style=\"display:inline-block;background:#1F4A32;color:#FFFBF3;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:600;font-size:14px\">Continue to full application →</a></div>"
+        + "<hr style=\"border:none;border-top:1px solid #E4DFD6;margin:26px 0 14px\">"
+        + "<div style=\"font-size:12px;color:#6B6558;line-height:1.5\">Pinewood Business Capital · Estimates are based on the inputs you provided and are subject to underwriting.</div>"
+        + "</div></div>";
+      try {
+        await fetch(WIX_FUNCTION_URL, {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({
+            lead_type: "applicant_report_calculator",
+            subject: "Your Pinewood funding options",
+            html_body: html,
+            to_override: d.email,
+            reply_to: "esther@pinewoodbusinesscapital.com",
+            fields: Object.assign({report_kind: "calculator"}, utms || {}),
+            attachments: []
+          })
+        });
+      } catch (e) { console.error("[pinewood-calculator-v2] applicant report send failed:", e); }
+    }
+    function escapeHtml(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+    function fmtMoney(n){ n = Number(String(n||"").replace(/[^0-9.-]/g,"")); if(!isFinite(n)) return ""; return "$" + Math.round(n).toLocaleString("en-US"); }
     // Iron-clad dedup: any code path can only successfully fire a "full"
     // send exactly once per page load, and a "partial" send exactly once.
     // Guards against the case where the calc's internal code invokes send()
@@ -359,9 +457,9 @@
       const payload = {
         lead_type: SOURCE_LABEL.toLowerCase() + "_" + kind,
         subject: subjectPrefix + leadLabel(d),
-        html_body: buildBody(d, kind),
+        html_body: buildBody(d, kind, __utms),
         reply_to: d.email || "",
-        fields: d,
+        fields: Object.assign({}, d, __utms),
         attachments: []
       };
       if (includeFiles && window.__PW_STATE && window.__PW_STATE.files) {
@@ -382,6 +480,10 @@
         if (!resp.ok) {
           __sent[kind] = false;
           console.error("[pinewood-calculator-v2] " + kind + " server returned " + resp.status);
+        } else if (kind === "full") {
+          // Fire LinkedIn conversion + trigger applicant auto-report email
+          fireLinkedInConversion();
+          try { sendApplicantReport(d, __utms); } catch(e) { console.error("[pinewood-calculator-v2] applicant report failed:", e); }
         }
         return resp.ok;
       } catch (e) {
