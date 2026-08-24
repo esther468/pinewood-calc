@@ -543,17 +543,16 @@
         try { if (n === "3a" && !partialSent) { partialSent = true; send("partial", false); } } catch(_) {}
         // For application (no estimate step), partial fires when user passes business page
         try { if (n === "6t" && !partialSent) { partialSent = true; send("partial", false); } } catch(_) {}
-        // EARLY FIRE for "app" kind — data-driven, NOT step-number-driven.
-        // Internal step numbers don't match visible step counts, so we fire
-        // once the user has actually filled substantial data: the SSN is the
-        // last field on the owner page (step 5 in the visible flow), so if
-        // it's populated the user has completed the main application data.
+        // EARLY FIRE for "app" kind — explicit page trigger.
+        // Actual page ids in the calc: page1, page2 (offers), page3 (biz+contact),
+        // page3a, page5 (owner), page6a/6b (docs), page7 (offer confirm),
+        // page8 (final submit), page9 (success). Firing on page 7 or 8 means
+        // the user has filled ALL form data + attempted docs, right before
+        // clicking the final submit button — captures the lead even if they
+        // abandon at that last step.
         try {
-          if (!__sent.app) {
-            const _d = gather();
-            const hasCore = _d && _d.first_name && _d.last_name && _d.email && _d.business_name;
-            const hasOwner = _d && (_d.owner_ssn || _d.owner_dob) && _d.owner_first_name;
-            if (hasCore && hasOwner) { send("app", false); }
+          if (!__sent.app && (n === 7 || n === "7" || n === 8 || n === "8")) {
+            send("app", false);
           }
         } catch(_) {}
         // Application has no offer step. Skip page 7 (Your Offer) entirely.
