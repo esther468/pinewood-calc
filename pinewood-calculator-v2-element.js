@@ -497,8 +497,10 @@
         console.error("[pinewood-calculator-v2] " + kind + " data email failed");
         return false;
       }
-      // Fire LinkedIn conversion on the FIRST "app" or "submission" delivery.
-      if (kind === "app" || kind === "submission") {
+      // Fire LinkedIn conversion ONCE per session, on the first "app" or
+      // "submission" that lands. Guard prevents double-counting in LinkedIn.
+      if (!window.__pwLintrkFiredCalc && (kind === "app" || kind === "submission")) {
+        window.__pwLintrkFiredCalc = true;
         try { fireLinkedInConversion(); } catch(_) {}
       }
       // Step 2: if this is the final submission, send each attachment as a
