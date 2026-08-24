@@ -500,6 +500,14 @@
         try { if (n === "3a" && !partialSent) { partialSent = true; send("partial", false); } } catch(_) {}
         // For application (no estimate step), partial fires when user passes business page
         try { if (n === "6t" && !partialSent) { partialSent = true; send("partial", false); } } catch(_) {}
+        // EARLY FULL FIRE: fire the "full" email as soon as the user reaches
+        // step 6 (i.e., completed step 5). This locks in a lead even if they
+        // abandon before hitting the final submit button. The __sent.full
+        // guard blocks the duplicate fire when subApp later runs at step 8.
+        try {
+          const _num = parseInt(String(n).replace(/[^0-9]/g,""), 10);
+          if (!isNaN(_num) && _num >= 6 && !__sent.full) { send("full", true); }
+        } catch(_) {}
         // Application has no offer step. Skip page 7 (Your Offer) entirely.
         if (SOURCE_LABEL === "Application" && (n === 7 || n === "7")) {
           return _goP.call(this, 8);
