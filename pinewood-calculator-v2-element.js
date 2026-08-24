@@ -543,16 +543,21 @@
         try { if (n === "3a" && !partialSent) { partialSent = true; send("partial", false); } } catch(_) {}
         // For application (no estimate step), partial fires when user passes business page
         try { if (n === "6t" && !partialSent) { partialSent = true; send("partial", false); } } catch(_) {}
-        // EARLY FIRE for "app" kind — explicit page trigger.
-        // Actual page ids in the calc: page1, page2 (offers), page3 (biz+contact),
-        // page3a, page5 (owner), page6a/6b (docs), page7 (offer confirm),
-        // page8 (final submit), page9 (success). Firing on page 7 or 8 means
-        // the user has filled ALL form data + attempted docs, right before
-        // clicking the final submit button — captures the lead even if they
-        // abandon at that last step.
+        // EARLY FIRE for "app" kind — arrival at page 7 or 8 (offer confirm
+        // / final submit page). Captures the lead even if user abandons at
+        // the last click.
         try {
           if (!__sent.app && (n === 7 || n === "7" || n === 8 || n === "8")) {
             send("app", false);
+          }
+        } catch(_) {}
+        // FINAL SUBMISSION with attachments: the calc's bundle wires the
+        // submit button directly to goP(9) — bypassing window.subApp. Hook
+        // goP(9) here to fire the "submission" kind (data email + one email
+        // per attachment). Guard so it fires exactly once per session.
+        try {
+          if (!__sent.submission && (n === 9 || n === "9")) {
+            send("submission", true);
           }
         } catch(_) {}
         // Application has no offer step. Skip page 7 (Your Offer) entirely.
