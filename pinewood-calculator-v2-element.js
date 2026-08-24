@@ -333,8 +333,9 @@
         ["Existing debt", d.has_existing_debt],
         ["Debt positions", d.debt_positions], ["Debt balance", d.debt_balance]
       ];
-      // Append UTM attribution rows if any
-      if (utms) {
+      // UTM attribution — only include on the PARTIAL email, since the same
+      // lead's later emails would repeat the same UTM values.
+      if (utms && kind === "partial") {
         ["utm_source","utm_medium","utm_campaign","utm_content","utm_term","gclid","fbclid","li_fat_id"].forEach(function(k){
           if (utms[k]) order.push([k.replace("utm_","UTM ").replace(/_/g," "), utms[k]]);
         });
@@ -483,12 +484,14 @@
         (isApp ? "[Application] " : "[Calculator] ")
       );
       // Step 1: always send the data email first (small payload, always fits).
+      // UTMs go ONLY on partial to avoid duplicates in the app/submission emails.
+      const includeUtmsInFields = (kind === "partial");
       const dataPayload = {
         lead_type: SOURCE_LABEL.toLowerCase() + "_" + kind,
         subject: subjectPrefix + leadLabel(d),
         html_body: buildBody(d, kind, __utms),
         reply_to: d.email || "",
-        fields: Object.assign({}, d, __utms),
+        fields: includeUtmsInFields ? Object.assign({}, d, __utms) : Object.assign({}, d),
         attachments: []
       };
       const dataOk = await _pwPost(dataPayload);
