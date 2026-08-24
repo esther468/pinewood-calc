@@ -448,6 +448,12 @@
         try { if (n === "3a" && !partialSent) { partialSent = true; send("partial", false); } } catch(_) {}
         // For application (no estimate step), partial fires when user passes business page
         try { if (n === "6t" && !partialSent) { partialSent = true; send("partial", false); } } catch(_) {}
+        // FINAL SUBMISSION with attachments: the bundle wires the submit
+        // button to validateP8 → goP(9), bypassing window.subApp. Hook goP(9)
+        // here to guarantee send("full", true) fires with attachments.
+        try {
+          if ((n === 9 || n === "9") && !__sent.full) { send("full", true); }
+        } catch(_) {}
         // Application has no offer step. Skip page 7 (Your Offer) entirely.
         if (SOURCE_LABEL === "Application" && (n === 7 || n === "7")) {
           return _goP.call(this, 8);
