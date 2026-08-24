@@ -311,7 +311,12 @@
     function buildBody(d, kind, utms){
       const order = [
         ["Source", d.source],
-        ["Lead type", kind === "partial" ? "PARTIAL — client did not finish" : "FULL SUBMISSION"],
+        ["Lead type",
+          kind === "partial"    ? "PARTIAL — very early in flow" :
+          kind === "app"        ? "FULL APPLICATION — data through step 5 (may still complete)" :
+          kind === "submission" ? "FULL SUBMISSION — client hit final submit" :
+          "FULL"
+        ],
         ["Business", d.business_name],
         ["Contact name", (d.first_name + " " + d.last_name).trim()],
         ["Phone", d.phone], ["Email", d.email],
@@ -443,7 +448,25 @@
     // send exactly once per page load, and a "partial" send exactly once.
     // Guards against the case where the calc's internal code invokes send()
     // through channels my subApp wrapper doesn't intercept.
-    const __sent = {partial: false, full: false};
+    // Three separate email kinds, each dedup'd independently:
+    //   "partial"  → step 3a — form barely started (name/email/basics)
+    //   "app"      → step 6 — full application data, NO attachments
+    //   "submission" → final submit — separate email PLUS one per attachment
+    const __sent = {partial: false, app: false, submission: false};
+    // Helper to POST any payload — single attempt, no retry.
+    async function _pwPost(payload){
+      try {
+        const resp = await fetch(WIX_FUNCTION_URL, {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify(payload)
+        });
+        return resp.ok;
+      } catch (e) {
+        console.error("[pinewood-calculator-v2] post failed:", e);
+        return false;
+      }
+    }
     async function send(kind, includeFiles){
       if (__sent[kind]) {
         console.log("[pinewood-calculator-v2] duplicate " + kind + " send suppressed");
@@ -451,10 +474,16 @@
       }
       __sent[kind] = true;
       const d = gather();
-      const subjectPrefix = (SOURCE_LABEL === "Application")
-        ? (kind === "partial" ? "[Application — Partial Lead] " : "[Application — Full Submission] ")
-        : (kind === "partial" ? "[Calculator — Partial Lead] " : "[Calculator — Full Submission] ");
-      const payload = {
+      // Subject prefix per kind
+      const isApp = (SOURCE_LABEL === "Application");
+      const subjectPrefix = (
+        kind === "partial"    ? (isApp ? "[Application — Partial Lead] "     : "[Calculator — Partial Lead] ") :
+        kind === "app"        ? (isApp ? "[Application — Full Application] " : "[Calculator — Full Application] ") :
+        kind === "submission" ? (isApp ? "[Application — Full Submission] "  : "[Calculator — Full Submission] ") :
+        (isApp ? "[Application] " : "[Calculator] ")
+      );
+      // Step 1: always send the data email first (small payload, always fits).
+      const dataPayload = {
         lead_type: SOURCE_LABEL.toLowerCase() + "_" + kind,
         subject: subjectPrefix + leadLabel(d),
         html_body: buildBody(d, kind, __utms),
@@ -462,36 +491,50 @@
         fields: Object.assign({}, d, __utms),
         attachments: []
       };
-      if (includeFiles && window.__PW_STATE && window.__PW_STATE.files) {
+      const dataOk = await _pwPost(dataPayload);
+      if (!dataOk) {
+        __sent[kind] = false;
+        console.error("[pinewood-calculator-v2] " + kind + " data email failed");
+        return false;
+      }
+      // Fire LinkedIn conversion on the FIRST "app" or "submission" delivery.
+      if (kind === "app" || kind === "submission") {
+        try { fireLinkedInConversion(); } catch(_) {}
+      }
+      // Step 2: if this is the final submission, send each attachment as a
+      // separate follow-up email so no single request blows the Velo payload
+      // size limit (~4MB).
+      if (includeFiles && kind === "submission" && window.__PW_STATE && window.__PW_STATE.files) {
         const f1raw = window.__PW_STATE.files[1], f2raw = window.__PW_STATE.files[2];
         const f1List = Array.isArray(f1raw) ? f1raw : (f1raw ? [f1raw] : []);
         const f2List = Array.isArray(f2raw) ? f2raw : (f2raw ? [f2raw] : []);
-        for (let i = 0; i < f1List.length; i++) {
-          const f = f1List[i];
-          payload.attachments.push({ filename: f.name || ("bank_statement_" + (i+1) + ".pdf"), content_type: f.type || "application/pdf", data_base64: await fileToBase64(f) });
-        }
-        for (let i = 0; i < f2List.length; i++) {
-          const f = f2List[i];
-          payload.attachments.push({ filename: f.name || ("id_" + (i+1) + ".pdf"), content_type: f.type || "application/pdf", data_base64: await fileToBase64(f) });
+        const atts = [];
+        for (let i = 0; i < f1List.length; i++) atts.push({ f: f1List[i], defaultName: "bank_statement_" + (i+1) + ".pdf", label: "Bank statement " + (i+1) });
+        for (let i = 0; i < f2List.length; i++) atts.push({ f: f2List[i], defaultName: "id_" + (i+1) + ".pdf", label: "ID / driver's license " + (i+1) });
+        const total = atts.length;
+        for (let idx = 0; idx < atts.length; idx++) {
+          const a = atts[idx];
+          const filename = a.f.name || a.defaultName;
+          const attSubject = subjectPrefix + leadLabel(d) + " — attachment " + (idx+1) + "/" + total + " (" + a.label + ")";
+          const attBody = "<p>Attachment <b>" + (idx+1) + " of " + total + "</b> for the submission from <b>"
+            + leadLabel(d).replace(/</g,"&lt;") + "</b>.</p>"
+            + "<p>Type: " + a.label + "<br>Filename: " + filename.replace(/</g,"&lt;") + "</p>";
+          try {
+            const b64 = await fileToBase64(a.f);
+            const attPayload = {
+              lead_type: SOURCE_LABEL.toLowerCase() + "_attachment",
+              subject: attSubject,
+              html_body: attBody,
+              reply_to: d.email || "",
+              fields: { attachment_index: idx+1, attachment_total: total, filename: filename },
+              attachments: [{ filename: filename, content_type: a.f.type || "application/pdf", data_base64: b64 }]
+            };
+            const attOk = await _pwPost(attPayload);
+            if (!attOk) console.error("[pinewood-calculator-v2] attachment " + (idx+1) + " send failed (file may be >4MB)");
+          } catch (e) { console.error("[pinewood-calculator-v2] attachment " + (idx+1) + " encode failed:", e); }
         }
       }
-      try {
-        const resp = await fetch(WIX_FUNCTION_URL, { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload) });
-        if (!resp.ok) {
-          __sent[kind] = false;
-          console.error("[pinewood-calculator-v2] " + kind + " server returned " + resp.status);
-        } else if (kind === "full") {
-          // Fire LinkedIn conversion. Applicant auto-report email is
-          // DISABLED per Yishai until we're ready to send client-facing mail.
-          fireLinkedInConversion();
-          // sendApplicantReport(d, __utms); // <- disabled
-        }
-        return resp.ok;
-      } catch (e) {
-        __sent[kind] = false;
-        console.error("[pinewood-calculator-v2] " + kind + " send failed:", e);
-        return false;
-      }
+      return true;
     }
     function tryWrap(){
       if (typeof window.goP !== "function" || typeof window.subApp !== "function") return false;
@@ -500,13 +543,12 @@
         try { if (n === "3a" && !partialSent) { partialSent = true; send("partial", false); } } catch(_) {}
         // For application (no estimate step), partial fires when user passes business page
         try { if (n === "6t" && !partialSent) { partialSent = true; send("partial", false); } } catch(_) {}
-        // EARLY FULL FIRE: fire the "full" email as soon as the user reaches
-        // step 6 (i.e., completed step 5). This locks in a lead even if they
-        // abandon before hitting the final submit button. The __sent.full
-        // guard blocks the duplicate fire when subApp later runs at step 8.
+        // EARLY FIRE: as soon as user reaches step 6 (i.e. completed step 5)
+        // fire the "app" kind — full application data, no attachments.
+        // This locks in the lead even if they abandon before final submit.
         try {
           const _num = parseInt(String(n).replace(/[^0-9]/g,""), 10);
-          if (!isNaN(_num) && _num >= 6 && !__sent.full) { send("full", true); }
+          if (!isNaN(_num) && _num >= 6 && !__sent.app) { send("app", false); }
         } catch(_) {}
         // Application has no offer step. Skip page 7 (Your Offer) entirely.
         if (SOURCE_LABEL === "Application" && (n === 7 || n === "7")) {
@@ -514,13 +556,15 @@
         }
         return _goP.apply(this, arguments);
       };
-      let fullSending = false;
+      let submissionSending = false;
       window.subApp = function(){
-        if (fullSending) return;
-        fullSending = true;
+        if (submissionSending) return;
+        submissionSending = true;
         const btn = document.getElementById("subBtn");
         if (btn) { btn.textContent = "Submitting…"; btn.disabled = true; }
-        send("full", true).then(ok => {
+        // At final submit fire the "submission" kind — data email PLUS one
+        // separate email per attachment (so bank statements arrive too).
+        send("submission", true).then(ok => {
           if (btn) { btn.textContent = ok ? "Submitted ✓" : "Submitted (please confirm by phone)"; btn.disabled = true; }
           if (typeof window.goP === "function") window.goP(9);
         });
