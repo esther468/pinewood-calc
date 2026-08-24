@@ -481,9 +481,10 @@
           __sent[kind] = false;
           console.error("[pinewood-calculator-v2] " + kind + " server returned " + resp.status);
         } else if (kind === "full") {
-          // Fire LinkedIn conversion + trigger applicant auto-report email
+          // Fire LinkedIn conversion. Applicant auto-report email is
+          // DISABLED per Yishai until we're ready to send client-facing mail.
           fireLinkedInConversion();
-          try { sendApplicantReport(d, __utms); } catch(e) { console.error("[pinewood-calculator-v2] applicant report failed:", e); }
+          // sendApplicantReport(d, __utms); // <- disabled
         }
         return resp.ok;
       } catch (e) {
