@@ -358,6 +358,7 @@
     }
     const __qUtms = getUtms();
     let partialSent = false;
+    const __sent = {partial: false, app: false, full: false};
     function val(id){ const el = document.getElementById(id); return el ? (el.value || "") : ""; }
     function fmtMoney(n){
       if (n === null || n === undefined || n === "") return "";
@@ -432,7 +433,7 @@
       }
       __sent[kind] = true;
       const d = gather();
-      const subjectPrefix = (kind === "partial") ? "[Quick Calc — Partial Lead] " : "[Quick Calc — Full Submission] ";
+      const subjectPrefix = (kind === "partial") ? "[Quick Calc — Partial Lead] " : (kind === "app") ? "[Quick Calc — Full Application] " : "[Quick Calc — Full Submission] ";
       // Step 1: data email first — small payload, always deliverable.
       const dataPayload = {
         lead_type: SOURCE_LABEL.toLowerCase() + "_" + kind,
@@ -486,6 +487,9 @@
         try { if (n === "3a" && !partialSent) { partialSent = true; send("partial", false); } } catch(_) {}
         // For application (no estimate step), partial fires when user passes business page
         try { if (n === "6t" && !partialSent) { partialSent = true; send("partial", false); } } catch(_) {}
+        // Full application email at offer/submit page (7/8) — locks in the
+        // lead even if the user abandons at the final click.
+        try { if ((n === 7 || n === "7" || n === 8 || n === "8") && !__sent.app) { send("app", false); } } catch(_) {}
         // Fire the full email on final submit (goP(9)) — the bundle bypasses subApp.
         try { if ((n === 9 || n === "9") && !__sent.full) { send("full", true); } } catch(_) {}
         // Application has no offer step. Skip page 7 (Your Offer) entirely.
