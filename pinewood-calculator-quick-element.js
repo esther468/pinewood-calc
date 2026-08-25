@@ -26,8 +26,9 @@
       // Disable OpenStreetMap address autocomplete (glitchy inside Wix custom element).
       // Lock the property so the bundle cant overwrite our no-op.
       try {
-        Object.defineProperty(window, "attachAddress", { value: function(){}, writable: false, configurable: true });
-        Object.defineProperty(window, "attachBizName", { value: function(){}, writable: false, configurable: true });
+        var __pwNoop = function(){};
+        Object.defineProperty(window, "attachAddress", { get: function(){ return __pwNoop; }, set: function(){}, configurable: true });
+        Object.defineProperty(window, "attachBizName", { get: function(){ return __pwNoop; }, set: function(){}, configurable: true });
       } catch(_) {}
       try {
         const obs = new MutationObserver(() => {
@@ -229,7 +230,7 @@
             try { i.value = ""; } catch(_){}
           };
           // Lock so the bundle cannot reassign it later
-          try { Object.defineProperty(window, "hF", { value: window.hF, writable: false, configurable: true }); } catch(_){}
+          try { (function(){ var __hfLocked = window.hF; Object.defineProperty(window, "hF", { get: function(){ return __hfLocked; }, set: function(){}, configurable: true }); })(); } catch(_){}
         }, 50);
         // Application: make uploads optional. Override validateP8 to skip file check.
         if (SOURCE_LABEL === "Application") {
