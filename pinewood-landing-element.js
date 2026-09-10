@@ -120,6 +120,29 @@
 @keyframes spin{to {transform:rotate(360deg)}}.site-foot {border-top:1px solid var(--line);background:var(--surface);margin-top:48px}.site-foot .inner {max-width:1080px;margin:0 auto;padding:30px 28px 14px;display:flex;flex-wrap:wrap;gap:22px 52px}
 @media(max-width:600px){.site-foot .inner {padding:24px 18px 12px;gap:18px 34px}}.site-foot .col {min-width:150px}.site-foot .col .h {font-family:var(--f-sans);font-weight:600;font-size:.72em;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin-bottom:9px}.site-foot .col a, .site-foot .col .li {display:block;color:var(--ink-2);font-size:.88em;text-decoration:none;line-height:1.9}.site-foot .col a:hover {color:var(--accent)}.site-foot .col.brandcol .li {color:var(--ink);font-family:var(--f-display);font-weight:600;font-size:1.05em}.site-foot .cr {max-width:1080px;margin:0 auto;padding:12px 28px 28px;font-size:.74em;color:var(--mute);line-height:1.6}
 @media(max-width:600px){.site-foot .cr {padding:12px 18px 24px}}
+
+/* ===== Pinewood fluid-interface polish (landing) ===== */
+pinewood-landing{--pw-ease:cubic-bezier(.22,1,.36,1);--pw-focus:#1F3A2E;--pw-err:#C23B22}
+pinewood-landing .btn,pinewood-landing .btn-mega,pinewood-landing .fbtn{transition:transform .22s var(--pw-ease),box-shadow .3s var(--pw-ease),background-color .2s var(--pw-ease),border-color .2s var(--pw-ease),color .2s var(--pw-ease),opacity .2s var(--pw-ease) !important}
+pinewood-landing .btn:active:not(:disabled),pinewood-landing .btn-mega:active:not(:disabled),pinewood-landing .fbtn:active{transform:scale(.97) !important;transition-duration:.08s !important}
+pinewood-landing .fcard,pinewood-landing .choice,pinewood-landing .backlink,pinewood-landing .restart{transition:transform .25s var(--pw-ease),box-shadow .3s var(--pw-ease),border-color .2s var(--pw-ease),background-color .2s var(--pw-ease),color .2s var(--pw-ease) !important}
+pinewood-landing .fcard:active,pinewood-landing .choice:active{transform:scale(.985) !important;transition-duration:.08s !important}
+pinewood-landing .btn:focus-visible,pinewood-landing .btn-mega:focus-visible,pinewood-landing a:focus-visible,pinewood-landing button:focus-visible{outline:2px solid var(--pw-focus) !important;outline-offset:3px !important}
+pinewood-landing .fld input:focus-visible{outline:none !important;border-color:var(--pw-focus) !important;box-shadow:0 0 0 3px rgba(31,58,46,.18) !important}
+pinewood-landing .fld input{transition:border-color .2s var(--pw-ease),background-color .2s var(--pw-ease),box-shadow .2s var(--pw-ease) !important}
+@keyframes pw-step-fwd{from{opacity:0;transform:translate3d(0,14px,0)}to{opacity:1;transform:none}}
+pinewood-landing .page,pinewood-landing .view{animation:pw-step-fwd .42s var(--pw-ease) both !important}
+pinewood-landing #lgErr{border-radius:12px !important;animation:pw-step-fwd .3s var(--pw-ease) both}
+pinewood-landing h1,pinewood-landing h2,pinewood-landing h3{text-wrap:balance}
+pinewood-landing p,pinewood-landing li{text-wrap:pretty}
+@media (hover:none){pinewood-landing .fcard:hover,pinewood-landing .choice:hover,pinewood-landing .btn-primary:hover{transform:none !important}}
+@media (prefers-reduced-motion:reduce){
+  pinewood-landing *,pinewood-landing *::before,pinewood-landing *::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
+  pinewood-landing .spin,pinewood-landing .ce-loading .spin{animation-duration:1s !important;animation-iteration-count:infinite !important}
+  pinewood-landing .btn:active:not(:disabled){transform:none !important}
+}
+@media (prefers-contrast:more){pinewood-landing .fld input,pinewood-landing .fcard,pinewood-landing .choice{border-color:#4A4A4A !important}}
+
 `;
   const BODY_HTML = `
 
