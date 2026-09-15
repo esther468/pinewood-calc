@@ -334,9 +334,9 @@
         ["Existing debt", d.has_existing_debt],
         ["Debt positions", d.debt_positions], ["Debt balance", d.debt_balance]
       ];
-      // UTM attribution — always shown on the PARTIAL email so the
-      // pipeline is visibly working even for direct (no-UTM) visits.
-      if (kind === "partial") {
+      // UTM attribution — shown on EVERY admin email (partial, app, submission)
+      // so full applications carry the same attribution as the partial lead.
+      {
         var u = utms || {};
         order.push(["UTM attribution", (Object.keys(u).length ? Object.keys(u).map(function(k){return k+"="+u[k];}).join("  |  ") : "(none — direct visit)")]);
       }
@@ -491,8 +491,9 @@
         (isApp ? "[Application] " : "[Calculator] ")
       );
       // Step 1: always send the data email first (small payload, always fits).
-      // UTMs go ONLY on partial to avoid duplicates in the app/submission emails.
-      const includeUtmsInFields = (kind === "partial");
+      // UTMs ride on EVERY kind (partial, app, submission) so the full
+      // application email and its fields object carry attribution too.
+      const includeUtmsInFields = true;
       const dataPayload = {
         lead_type: SOURCE_LABEL.toLowerCase() + "_" + kind,
         subject: subjectPrefix + leadLabel(d),
