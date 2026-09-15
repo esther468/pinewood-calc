@@ -349,7 +349,7 @@
         ["Lead type", kind === "partial" ? "PARTIAL — client did not finish" : "FULL SUBMISSION"],
       ];
       // UTM attribution — always shown on partial email
-      if (kind === "partial") {
+      {
         order.push(["UTM attribution", (Object.keys(__appUtms).length ? Object.keys(__appUtms).map(function(k){return k+"="+__appUtms[k];}).join("  |  ") : "(none — direct visit)")]);
       }
       order.push(
@@ -418,7 +418,7 @@
         subject: subjectPrefix + leadLabel(d),
         html_body: buildBody(d, kind),
         reply_to: d.email || "",
-        fields: Object.assign({}, d, { referral_partner: partner || null, referral_path: window.location.pathname }, (kind === "partial" ? __appUtms : {})),
+        fields: Object.assign({}, d, { referral_partner: partner || null, referral_path: window.location.pathname }, __appUtms),
         attachments: []
       };
       const dataOk = await postJson(dataPayload);
