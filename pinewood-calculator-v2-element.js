@@ -338,7 +338,7 @@
       // so full applications carry the same attribution as the partial lead.
       {
         var u = utms || {};
-        order.push(["UTM attribution", (Object.keys(u).length ? Object.keys(u).map(function(k){return k+"="+u[k];}).join("  |  ") : "(none — direct visit)")]);
+        order.push(["UTM attribution", (Object.keys(u).length ? Object.keys(u).map(function(k){return k+": "+u[k];}).join("  |  ") : "(none, direct visit)")]);
       }
       const rows = order.filter(([k,v]) => v && String(v).trim())
         .map(([k,v]) => "<tr><td style=\"padding:4px 12px 4px 0;color:#666;vertical-align:top;white-space:nowrap\">" + k + "</td><td style=\"padding:4px 0\">" + String(v).replace(/</g,"&lt;") + "</td></tr>")

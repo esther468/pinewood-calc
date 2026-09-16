@@ -350,7 +350,7 @@
       ];
       // UTM attribution — always shown on partial email
       {
-        order.push(["UTM attribution", (Object.keys(__appUtms).length ? Object.keys(__appUtms).map(function(k){return k+"="+__appUtms[k];}).join("  |  ") : "(none — direct visit)")]);
+        order.push(["UTM attribution", (Object.keys(__appUtms).length ? Object.keys(__appUtms).map(function(k){return k+": "+__appUtms[k];}).join("  |  ") : "(none, direct visit)")]);
       }
       order.push(
         ["Business", d.business_name],
