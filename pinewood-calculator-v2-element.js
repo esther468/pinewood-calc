@@ -283,6 +283,7 @@
       if (isNaN(num)) return String(n);
       return "$" + num.toLocaleString("en-US");
     }
+    window.__pwGather = function(){ try { return gather(); } catch(_) { return {}; } };
     function gather(){
       const S = window.__PW_STATE || {};
       const tib = {3:"Less than 6 months",9:"6 months – 1 year",18:"1–2 years",36:"2–5 years",72:"5+ years"};
@@ -421,6 +422,7 @@
           lead_type: leadType,
           qualified: rev >= PW_QUAL_MIN,
           revenue: rev,
+          fields: (typeof window.__pwGather === "function") ? window.__pwGather() : {},
           first_name: g("fNm"),
           last_name: g("lNm"),
           email: g("em"),
