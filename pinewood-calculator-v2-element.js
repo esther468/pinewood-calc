@@ -375,6 +375,51 @@
       } catch (_) { return {}; }
     }
     const __utms = captureUtms();
+    // ---- Meta (Facebook) lead tracking ----
+    // Qualified = monthly revenue at or above PW_QUAL_MIN. The Lead event is
+    // the campaign optimization event. It fires once per session, in page, at
+    // contact capture so the calculator flow is never interrupted. Anything
+    // under the floor never fires it and never reaches Meta.
+    const PW_QUAL_MIN = 50000;
+    function pwRevenueNum(){
+      try {
+        var raw = (window.__PW_STATE && window.__PW_STATE.rev != null) ? window.__PW_STATE.rev : null;
+        if (raw == null || raw === "") { var el = document.getElementById("p1R"); raw = el ? el.value : ""; }
+        var n = parseFloat(String(raw).replace(/[^0-9.]/g, ""));
+        return isNaN(n) ? 0 : n;
+      } catch (_) { return 0; }
+    }
+    function pwEventId(){
+      try {
+        var id = sessionStorage.getItem("__pwEid");
+        if (!id) { id = "pw-" + Date.now() + "-" + Math.floor(Math.random() * 1000000); sessionStorage.setItem("__pwEid", id); }
+        return id;
+      } catch (_) { return "pw-" + Date.now(); }
+    }
+    function pwFireMetaLead(){
+      try {
+        if (window.__pwMetaLeadFired) return;
+        var rev = pwRevenueNum();
+        if (rev < PW_QUAL_MIN) return;
+        window.__pwMetaLeadFired = true;
+        if (typeof window.fbq === "function") {
+          window.fbq("track", "Lead", {
+            content_name: "qualified_lead",
+            content_category: SOURCE_LABEL.toLowerCase(),
+            value: rev,
+            currency: "USD"
+          }, { eventID: pwEventId() });
+        }
+      } catch (_) {}
+    }
+    function pwThanksUrl(){
+      try {
+        var q = ["eid=" + encodeURIComponent(pwEventId()), "src=" + encodeURIComponent(SOURCE_LABEL.toLowerCase())];
+        Object.keys(__utms).forEach(function(k){ q.push(encodeURIComponent(k) + "=" + encodeURIComponent(__utms[k])); });
+        var page = (pwRevenueNum() >= PW_QUAL_MIN) ? "/thanks-qualified" : "/thanks";
+        return page + "?" + q.join("&");
+      } catch (_) { return "/thanks"; }
+    }
     // ---- LinkedIn conversion tracking ----
     // Insight Tag is loaded site-wide via Wix Custom Code. We just fire the
     // conversion event on successful full submit. Guard for tag not loaded.
@@ -553,7 +598,7 @@
       if (typeof window.goP !== "function" || typeof window.subApp !== "function") return false;
       const _goP = window.goP;
       window.goP = function(n){
-        try { if (n === "3a" && !partialSent) { partialSent = true; send("partial", false); } } catch(_) {}
+        try { if (n === "3a" && !partialSent) { partialSent = true; send("partial", false); pwFireMetaLead(); } } catch(_) {}
         // For application (no estimate step), partial fires when user passes business page
         try { if (n === "6t" && !partialSent) { partialSent = true; send("partial", false); } } catch(_) {}
         // EARLY FIRE for "app" kind — arrival at page 7 or 8 (offer confirm
@@ -590,6 +635,7 @@
         send("submission", true).then(ok => {
           if (btn) { btn.textContent = ok ? "Submitted ✓" : "Submitted (please confirm by phone)"; btn.disabled = true; }
           if (typeof window.goP === "function") window.goP(9);
+          try { setTimeout(function(){ window.location.href = pwThanksUrl(); }, 1500); } catch(_) {}
         });
       };
       return true;
