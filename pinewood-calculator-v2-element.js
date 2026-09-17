@@ -412,12 +412,41 @@
         }
       } catch (_) {}
     }
+    function pwHook(leadType){
+      try {
+        var g = function(id){ var e = document.getElementById(id); return e ? String(e.value || "").trim() : ""; };
+        var rev = pwRevenueNum();
+        var payload = {
+          source: "calculator",
+          lead_type: leadType,
+          qualified: rev >= PW_QUAL_MIN,
+          revenue: rev,
+          first_name: g("fNm"),
+          last_name: g("lNm"),
+          email: g("em"),
+          phone: g("ph"),
+          company: g("bNm"),
+          industry: g("ind"),
+          location: g("bLoc"),
+          event_id: pwEventId(),
+          page: location.pathname,
+          utms: __utms || {}
+        };
+        fetch("https://hooks.zapier.com/hooks/catch/16237257/4dse7z8/", {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify(payload)
+        }).catch(function(){});
+      } catch (_) {}
+    }
     function pwOfferComplete(){
       try {
         if (window.__pwOfferDone) return;
         var box = document.querySelector(".ok-next");
         if (!box || box.offsetParent === null) return;
         window.__pwOfferDone = true;
+        pwHook("Full");
         if (typeof window.fbq === "function") {
           window.fbq("track", "SubmitApplication", { content_name: "completed_application", content_category: SOURCE_LABEL.toLowerCase() }, { eventID: pwEventId() + "-app" });
         }
@@ -613,7 +642,7 @@
       if (typeof window.goP !== "function" || typeof window.subApp !== "function") return false;
       const _goP = window.goP;
       window.goP = function(n){
-        try { if (n === "3a" && !partialSent) { partialSent = true; send("partial", false); pwFireMetaLead(); } setTimeout(pwOfferComplete, 400); setTimeout(pwOfferComplete, 1400); } catch(_) {}
+        try { if (n === "3a" && !partialSent) { partialSent = true; send("partial", false); pwFireMetaLead(); pwHook("Partial"); } setTimeout(pwOfferComplete, 400); setTimeout(pwOfferComplete, 1400); } catch(_) {}
         // For application (no estimate step), partial fires when user passes business page
         try { if (n === "6t" && !partialSent) { partialSent = true; send("partial", false); } } catch(_) {}
         // EARLY FIRE for "app" kind — arrival at page 7 or 8 (offer confirm
