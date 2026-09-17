@@ -412,6 +412,21 @@
         }
       } catch (_) {}
     }
+    function pwOfferComplete(){
+      try {
+        if (window.__pwOfferDone) return;
+        var box = document.querySelector(".ok-next");
+        if (!box || box.offsetParent === null) return;
+        window.__pwOfferDone = true;
+        if (typeof window.fbq === "function") {
+          window.fbq("track", "SubmitApplication", { content_name: "completed_application", content_category: SOURCE_LABEL.toLowerCase() }, { eventID: pwEventId() + "-app" });
+        }
+        if (pwRevenueNum() >= PW_QUAL_MIN && !document.getElementById("pwPickTime")) {
+          var html = '<div style="text-align:center;margin-top:18px"><a id="pwPickTime" href="' + pwThanksUrl() + '" style="display:inline-block;background:#1F4A32;color:#F5F2EC;text-decoration:none;font-weight:600;font-size:.95em;padding:13px 26px;border-radius:6px">Pick a time to talk</a><div style="color:var(--mute);font-size:.82em;margin-top:8px">Or just wait for the call. Either works.</div></div>';
+          box.insertAdjacentHTML("afterend", html);
+        }
+      } catch (_) {}
+    }
     function pwThanksUrl(){
       try {
         var q = ["eid=" + encodeURIComponent(pwEventId()), "src=" + encodeURIComponent(SOURCE_LABEL.toLowerCase())];
@@ -598,7 +613,7 @@
       if (typeof window.goP !== "function" || typeof window.subApp !== "function") return false;
       const _goP = window.goP;
       window.goP = function(n){
-        try { if (n === "3a" && !partialSent) { partialSent = true; send("partial", false); pwFireMetaLead(); } } catch(_) {}
+        try { if (n === "3a" && !partialSent) { partialSent = true; send("partial", false); pwFireMetaLead(); } setTimeout(pwOfferComplete, 400); setTimeout(pwOfferComplete, 1400); } catch(_) {}
         // For application (no estimate step), partial fires when user passes business page
         try { if (n === "6t" && !partialSent) { partialSent = true; send("partial", false); } } catch(_) {}
         // EARLY FIRE for "app" kind — arrival at page 7 or 8 (offer confirm
@@ -635,7 +650,6 @@
         send("submission", true).then(ok => {
           if (btn) { btn.textContent = ok ? "Submitted ✓" : "Submitted (please confirm by phone)"; btn.disabled = true; }
           if (typeof window.goP === "function") window.goP(9);
-          try { setTimeout(function(){ window.location.href = pwThanksUrl(); }, 1500); } catch(_) {}
         });
       };
       return true;
