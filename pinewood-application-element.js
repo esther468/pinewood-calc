@@ -341,6 +341,65 @@
       } catch (_) { return {}; }
     }
     const __appUtms = captureUtms();
+    // ---- Meta: qualified Lead event + catch hook for Meta-sourced applications ----
+    const PW_QUAL_MIN = 50000;
+    function pwRevenueNum(){
+      try {
+        var S = window.__PW_STATE || {};
+        var raw = (S.rev != null && S.rev !== "") ? S.rev : val("p1R");
+        var n = parseFloat(String(raw).replace(/[^0-9.]/g, ""));
+        return isNaN(n) ? 0 : n;
+      } catch (_) { return 0; }
+    }
+    function pwEventId(){
+      try {
+        var id = sessionStorage.getItem("__pwEid");
+        if (!id) { id = "pw-" + Date.now() + "-" + Math.floor(Math.random() * 1000000); sessionStorage.setItem("__pwEid", id); }
+        return id;
+      } catch (_) { return "pw-" + Date.now(); }
+    }
+    function pwIsMeta(){
+      try { return String((__appUtms && __appUtms.utm_source) || "").toLowerCase() === "meta"; } catch (_) { return false; }
+    }
+    function pwFireMetaLead(){
+      try {
+        if (window.__pwMetaLeadFired) return;
+        var rev = pwRevenueNum();
+        if (rev < PW_QUAL_MIN) return;
+        window.__pwMetaLeadFired = true;
+        if (typeof window.fbq === "function") {
+          window.fbq("track", "Lead", { content_name: "qualified_lead", content_category: "application", value: rev, currency: "USD" }, { eventID: pwEventId() });
+        }
+      } catch (_) {}
+    }
+    function pwHook(leadType){
+      try {
+        var d = gather();
+        var safe = {};
+        Object.keys(d).forEach(function(k){
+          if (["owner_ssn","owner_dob","ein","home_address","home_city","home_state","home_zip"].indexOf(k) === -1) safe[k] = d[k];
+        });
+        var rev = pwRevenueNum();
+        var payload = {
+          source: "Application",
+          lead_type: leadType,
+          qualified: rev >= PW_QUAL_MIN,
+          revenue: rev,
+          fields: safe,
+          first_name: d.first_name, last_name: d.last_name,
+          email: String(d.email || "").trim(), phone: d.phone,
+          company: d.business_name, industry: d.industry, location: d.location,
+          event_id: pwEventId(),
+          page: location.pathname,
+          utms: __appUtms || {}
+        };
+        fetch("https://hooks.zapier.com/hooks/catch/16237257/4dse7z8/", {
+          method: "POST", mode: "no-cors",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify(payload)
+        }).catch(function(){});
+      } catch (_) {}
+    }
     function buildBody(d, kind){
       const partner = referralPartner();
       const order = [
@@ -474,12 +533,22 @@
       window.goP = function(n){
         try { if (n === "3a" && !partialSent) { partialSent = true; send("partial", false); } } catch(_) {}
         // For application (no estimate step), partial fires when user passes business page
-        try { if (n === "6t" && !partialSent) { partialSent = true; send("partial", false); } } catch(_) {}
+        try { if (n === "6t" && !partialSent) { partialSent = true; send("partial", false); pwFireMetaLead(); if (pwIsMeta()) pwHook("Partial"); } } catch(_) {}
         // FINAL SUBMISSION with attachments: the bundle wires the submit
         // button to validateP8 → goP(9), bypassing window.subApp. Hook goP(9)
         // here to guarantee send("full", true) fires with attachments.
         try {
           if ((n === 9 || n === "9") && !__sent.full) { send("full", true); }
+          if (n === 9 || n === "9") {
+            if (!window.__pwAppFullHook) {
+              window.__pwAppFullHook = true;
+              pwFireMetaLead();
+              if (typeof window.fbq === "function" && pwRevenueNum() >= PW_QUAL_MIN) {
+                window.fbq("track", "SubmitApplication", { content_name: "completed_application", content_category: "application" }, { eventID: pwEventId() + "-app" });
+              }
+              if (pwIsMeta()) pwHook("Full");
+            }
+          }
         } catch(_) {}
         // Application has no offer step. Skip page 7 (Your Offer) entirely.
         if (SOURCE_LABEL === "Application" && (n === 7 || n === "7")) {
