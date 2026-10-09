@@ -413,12 +413,39 @@
         }
       } catch (_) {}
     }
+    var PW_VERIFY_URL = "https://www.pinewoodbusinesscapital.com/_functions/verifyPhone";
+    function pwPhoneMsg(text){
+      try {
+        var ph = document.getElementById("ph"); if (!ph) return;
+        var m = document.getElementById("pwPhoneMsg");
+        if (!m) { m = document.createElement("div"); m.id = "pwPhoneMsg"; m.style.cssText = "color:#9A3B1E;font-size:.85em;margin-top:6px"; ph.insertAdjacentElement("afterend", m); }
+        m.textContent = text || ""; m.style.display = text ? "block" : "none";
+      } catch(_) {}
+    }
+    function pwVerifyPhone(){
+      var ph = document.getElementById("ph");
+      var raw = ph ? String(ph.value || "").trim() : "";
+      if (window.__pwPhoneOkFor === raw && raw) return Promise.resolve(true);
+      var ctrl = (typeof AbortController === "function") ? new AbortController() : null;
+      var timer = ctrl ? setTimeout(function(){ try { ctrl.abort(); } catch(_) {} }, 4000) : null;
+      return fetch(PW_VERIFY_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phone: raw }), signal: ctrl ? ctrl.signal : undefined })
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          if (timer) clearTimeout(timer);
+          if (d && d.ok === false) {
+            pwPhoneMsg(d.type === "invalid" ? "That number does not look right. Please check it." : "Please enter a mobile number so we can reach you.");
+            return false;
+          }
+          window.__pwPhoneOkFor = raw; pwPhoneMsg(""); return true;
+        })
+        .catch(function(){ if (timer) clearTimeout(timer); window.__pwPhoneOkFor = raw; pwPhoneMsg(""); return true; });
+    }
     function pwHook(leadType){
       try {
         var g = function(id){ var e = document.getElementById(id); return e ? String(e.value || "").trim() : ""; };
         var rev = pwRevenueNum();
         var payload = {
-          source: "calculator",
+          source: (SOURCE_LABEL === "Application") ? "Application" : "calculator",
           lead_type: leadType,
           qualified: rev >= PW_QUAL_MIN,
           revenue: rev,
@@ -441,6 +468,9 @@
           body: JSON.stringify(payload)
         }).catch(function(){});
       } catch (_) {}
+    }
+    function pwIsMeta(){
+      try { return String((__utms && __utms.utm_source) || "").toLowerCase() === "meta"; } catch (_) { return false; }
     }
     function pwOfferComplete(){
       try {
@@ -644,9 +674,21 @@
       if (typeof window.goP !== "function" || typeof window.subApp !== "function") return false;
       const _goP = window.goP;
       window.goP = function(n){
+        if (n === "3a" && !partialSent) {
+          var _ph = document.getElementById("ph");
+          var _raw = _ph ? String(_ph.value || "").trim() : "";
+          if (_raw && window.__pwPhoneOkFor !== _raw) {
+            var _self = this, _args = arguments;
+            if (!window.__pwVerifying) {
+              window.__pwVerifying = true;
+              pwVerifyPhone().then(function(good){ window.__pwVerifying = false; if (good) { window.goP.apply(_self, _args); } });
+            }
+            return false;
+          }
+        }
         try { if (n === "3a" && !partialSent) { partialSent = true; send("partial", false); pwFireMetaLead(); pwHook("Partial"); } setTimeout(pwOfferComplete, 400); setTimeout(pwOfferComplete, 1400); } catch(_) {}
         // For application (no estimate step), partial fires when user passes business page
-        try { if (n === "6t" && !partialSent) { partialSent = true; send("partial", false); } } catch(_) {}
+        try { if (n === "6t" && !partialSent) { partialSent = true; send("partial", false); if (SOURCE_LABEL === "Application") { pwFireMetaLead(); if (pwIsMeta()) pwHook("Partial"); } } } catch(_) {}
         // EARLY FIRE for "app" kind — arrival at page 7 or 8 (offer confirm
         // / final submit page). Captures the lead even if user abandons at
         // the last click.
@@ -662,6 +704,14 @@
         try {
           if (!__sent.submission && (n === 9 || n === "9")) {
             send("submission", true);
+            if (SOURCE_LABEL === "Application" && !window.__pwAppFullHook) {
+              window.__pwAppFullHook = true;
+              pwFireMetaLead();
+              if (typeof window.fbq === "function" && pwRevenueNum() >= PW_QUAL_MIN) {
+                window.fbq("track", "SubmitApplication", { content_name: "completed_application", content_category: "application" }, { eventID: pwEventId() + "-app" });
+              }
+              if (pwIsMeta()) pwHook("Full");
+            }
           }
         } catch(_) {}
         // Application has no offer step. Skip page 7 (Your Offer) entirely.
@@ -685,6 +735,7 @@
       };
       return true;
     }
+    try { document.addEventListener("input", function(e){ if (e && e.target && e.target.id === "ph") { window.__pwPhoneOkFor = null; pwPhoneMsg(""); } }, true); } catch(_) {}
     let tries = 0;
     const iv = setInterval(() => { tries++; if (tryWrap() || tries > 100) clearInterval(iv); }, 100);
   }
