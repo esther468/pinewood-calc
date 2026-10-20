@@ -260,6 +260,39 @@
           });
         }
         wireOfferCards();
+
+        // ---- Fix 1 (2026-10-21): planner "Calculate my funding amount" threw on every run
+        // after the first. buildBlueprint rewrites #bpH.innerHTML, which deletes the
+        // #bpFrom / #bpTo spans it writes to on the next call. Restore them before each run.
+        (function(){
+          var orig = window.buildBlueprint;
+          if (typeof orig !== "function") return;
+          window.buildBlueprint = function(){
+            var h = document.getElementById("bpH");
+            if (h && !document.getElementById("bpFrom")) {
+              h.innerHTML = 'From <span id="bpFrom"></span> to <span id="bpTo" style="color:var(--accent)"></span> / month';
+            }
+            return orig.apply(this, arguments);
+          };
+        })();
+
+        // ---- Fix 2 (2026-10-21): page-2 product rows (#gaugeWrap .g) look like cards but had
+        // no click handler; Clarity showed repeated dead taps on them from Meta mobile traffic.
+        // Tapping a qualified row now does the same as the Continue button.
+        const gaugeFix = document.createElement("style");
+        gaugeFix.textContent = "#gaugeWrap .g:not(.inactive) { cursor: pointer; }";
+        host.appendChild(gaugeFix);
+        const gaugeWrap = document.getElementById("gaugeWrap");
+        if (gaugeWrap && !gaugeWrap.__gaugeWired) {
+          gaugeWrap.__gaugeWired = true;
+          gaugeWrap.addEventListener("click", function(ev){
+            const row = ev.target && ev.target.closest ? ev.target.closest(".g") : null;
+            if (row && gaugeWrap.contains(row) && !row.classList.contains("inactive") && typeof window.goP === "function") {
+              window.goP(3);
+            }
+          });
+        }
+
         new MutationObserver(wireOfferCards).observe(host, { childList: true, subtree: true });
 
       } catch (err) {
