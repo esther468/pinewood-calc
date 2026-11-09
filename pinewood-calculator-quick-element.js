@@ -426,6 +426,154 @@
         r.readAsDataURL(f);
       });
     }
+    // ---- Upload reliability (Nov 2026) ----
+    // Why: files used to go up one at a time AFTER the client clicked
+    // Submit, so anyone who closed the tab or locked their phone within
+    // ~15 seconds lost the rest of their documents (about 1 in 4 deals in
+    // Oct 2026). Now: each file is still its own small request (so the Velo
+    // size limit from July still can't bite), but they go up 3 at a time,
+    // each is retried once, the client sees a progress screen and a
+    // leave-page warning, and the thank-you page waits until every file is
+    // in. Attachment email subjects are unchanged (Lead check reads them).
+    const PW_UP_CONCURRENCY = 3;
+    const PW_UP_RETRY_MS = 1500;
+    function pwEsc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+    const pwUp = (function(){
+      let el = null, busy = false;
+      try {
+        window.addEventListener("beforeunload", function(e){
+          if (!busy) return;
+          e.preventDefault();
+          e.returnValue = "Your documents are still uploading.";
+          return e.returnValue;
+        });
+      } catch(_) {}
+      function q(k){ return el ? el.querySelector("[data-pw-up='" + k + "']") : null; }
+      function ensure(){
+        if (el && el.parentNode) return el;
+        el = document.createElement("div");
+        el.setAttribute("role", "dialog");
+        el.setAttribute("aria-modal", "true");
+        el.setAttribute("aria-live", "polite");
+        el.setAttribute("data-pw-upload", "1");
+        el.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;z-index:2147483646;background:rgba(26,20,16,.55);display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif";
+        el.innerHTML = "<div style=\"background:#FFFBF3;color:#1A1410;border-radius:14px;max-width:420px;width:100%;padding:28px 24px;box-sizing:border-box;box-shadow:0 20px 50px -20px rgba(0,0,0,.45);text-align:center\">"
+          + "<div data-pw-up=\"t\" style=\"font-size:20px;font-weight:600;color:#1F4A32;margin:0 0 8px;line-height:1.25\"></div>"
+          + "<div data-pw-up=\"m\" style=\"font-size:15px;line-height:1.5;margin:0 0 16px\"></div>"
+          + "<div data-pw-up=\"bar\" style=\"height:8px;background:#E4DFD6;border-radius:99px;overflow:hidden\"><div data-pw-up=\"fill\" style=\"height:100%;width:0;background:#1F4A32;transition:width .3s ease\"></div></div>"
+          + "<div data-pw-up=\"s\" style=\"font-size:13px;color:#6B6558;margin:12px 0 0;line-height:1.4\"></div>"
+          + "<div data-pw-up=\"a\" style=\"display:none;margin:18px 0 0\"></div>"
+          + "</div>";
+        (document.body || document.documentElement).appendChild(el);
+        return el;
+      }
+      function show(title, msg, pct, sub){
+        ensure();
+        q("t").textContent = title;
+        q("m").textContent = msg;
+        q("fill").style.width = Math.max(0, Math.min(100, pct)) + "%";
+        q("s").textContent = sub || "";
+        q("bar").style.display = "";
+        q("a").style.display = "none";
+        q("a").textContent = "";
+      }
+      function btn(label, primary){
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = label;
+        b.style.cssText = "display:block;width:100%;min-height:44px;margin:8px 0 0;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;"
+          + (primary ? "background:#1F4A32;color:#FFFBF3;border:1px solid #1F4A32" : "background:transparent;color:#1F4A32;border:1px solid #C9C2B4");
+        return b;
+      }
+      const KEEP_OPEN = "Please keep this page open until it finishes.";
+      return {
+        start: function(){ busy = true; show("Submitting your application", "Sending your details...", 4, KEEP_OPEN); },
+        progress: function(done, total){ busy = true; show("Uploading your documents", done + " of " + total + " uploaded", Math.round(8 + 92 * done / total), KEEP_OPEN); },
+        // Resolves "retry" or "continue".
+        failed: function(names){
+          return new Promise(function(resolve){
+            show("Some documents did not upload", "We could not upload: " + names.join(", ") + ". Check your connection and try again, or continue and our team will reach out for them.", 100, "");
+            q("bar").style.display = "none";
+            const a = q("a");
+            a.style.display = "block";
+            const r = btn("Try again", true), c = btn("Continue without them", false);
+            r.addEventListener("click", function(){ resolve("retry"); });
+            c.addEventListener("click", function(){ resolve("continue"); });
+            a.appendChild(r); a.appendChild(c);
+          });
+        },
+        done: function(){ busy = false; if (el && el.parentNode) el.parentNode.removeChild(el); el = null; }
+      };
+    })();
+    // Every uploaded file, in the same order and numbering as before:
+    // bank statements first, then IDs.
+    function pwCollectFiles(){
+      const S = window.__PW_STATE;
+      if (!S || !S.files) return [];
+      const f1raw = S.files[1], f2raw = S.files[2];
+      const f1List = Array.isArray(f1raw) ? f1raw : (f1raw ? [f1raw] : []);
+      const f2List = Array.isArray(f2raw) ? f2raw : (f2raw ? [f2raw] : []);
+      const atts = [];
+      for (let i = 0; i < f1List.length; i++) atts.push({ f: f1List[i], defaultName: "bank_statement_" + (i+1) + ".pdf", label: "Bank statement " + (i+1) });
+      for (let i = 0; i < f2List.length; i++) atts.push({ f: f2List[i], defaultName: "id_" + (i+1) + ".pdf", label: "ID / driver's license " + (i+1) });
+      for (let i = 0; i < atts.length; i++) { atts[i].idx = i; atts[i].filename = atts[i].f.name || atts[i].defaultName; }
+      return atts;
+    }
+    // Added to the Full Submission email so the team sees what to expect.
+    function pwDocsListHtml(atts){
+      return "<div style=\"font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:14px;color:#111;margin-top:14px\">"
+        + "<b>Documents in this submission (" + atts.length + ")</b>"
+        + "<ol style=\"margin:6px 0 0 18px;padding:0\">"
+        + atts.map(function(a){ return "<li>" + pwEsc(a.label) + ": " + pwEsc(a.filename) + "</li>"; }).join("")
+        + "</ol><div style=\"color:#666;font-size:12px;margin-top:6px\">Each file arrives as its own attachment email.</div></div>";
+    }
+    // Sends items 3 at a time; each gets one retry. Returns ok flags.
+    async function pwSendBatch(items, sendOne, onSent){
+      const ok = items.map(function(){ return false; });
+      let next = 0;
+      async function worker(){
+        while (next < items.length) {
+          const i = next++;
+          for (let attempt = 0; attempt < 2 && !ok[i]; attempt++) {
+            if (attempt) await new Promise(function(r){ setTimeout(r, PW_UP_RETRY_MS); });
+            try { ok[i] = !!(await sendOne(items[i])); } catch (e) { ok[i] = false; console.error("[pinewood-upload] file " + (i+1) + " error:", e); }
+          }
+          if (ok[i] && onSent) onSent();
+        }
+      }
+      const workers = [];
+      for (let w = 0; w < Math.min(PW_UP_CONCURRENCY, items.length); w++) workers.push(worker());
+      await Promise.all(workers);
+      return ok;
+    }
+    // Uploads all files with progress; if any still fail, lets the client
+    // try again or continue. Returns how many were sent.
+    async function pwUploadAll(atts, sendOne){
+      let pending = atts.slice(), sent = 0;
+      pwUp.progress(0, atts.length);
+      while (pending.length) {
+        const ok = await pwSendBatch(pending, sendOne, function(){ sent++; pwUp.progress(sent, atts.length); });
+        pending = pending.filter(function(_, i){ return !ok[i]; });
+        if (!pending.length) break;
+        const choice = await pwUp.failed(pending.map(function(a){ return a.filename; }));
+        if (choice !== "retry") break;
+        pwUp.progress(sent, atts.length);
+      }
+      return sent;
+    }
+    async function pwQuickPost(payload){
+      try {
+        const resp = await fetch(WIX_FUNCTION_URL, { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload) });
+        if (!resp.ok) console.error("[pinewood-calculator-quick] server returned " + resp.status);
+        return resp.ok;
+      } catch (e) { console.error("[pinewood-calculator-quick] post failed:", e); return false; }
+    }
+    // One shared upload per page load; the thank-you page waits on it.
+    let __pwFullP = null, __pwFullDone = false;
+    function pwStartFull(){
+      if (!__pwFullP) __pwFullP = send("full", true).then(function(ok){ __pwFullDone = true; return ok; }, function(){ __pwFullDone = true; return false; });
+      return __pwFullP;
+    }
     async function send(kind, includeFiles){
       if (__sent[kind]) {
         console.log("[pinewood-calculator-quick] duplicate " + kind + " send suppressed");
@@ -443,40 +591,40 @@
         fields: (kind === "partial") ? Object.assign({}, d, __qUtms) : d,
         attachments: []
       };
+      // List the documents in the submission email, and show the
+      // progress screen before anything is sent.
+      const atts = (includeFiles && kind === "full") ? pwCollectFiles() : [];
+      if (atts.length) { dataPayload.html_body += pwDocsListHtml(atts); pwUp.start(); }
       let dataOk = false;
       try {
         const resp = await fetch(WIX_FUNCTION_URL, { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(dataPayload) });
         dataOk = resp.ok;
         if (!resp.ok) console.error("[pinewood-calculator-quick] " + kind + " data email server returned " + resp.status);
       } catch (e) { console.error("[pinewood-calculator-quick] " + kind + " data email failed:", e); }
-      if (!dataOk) { __sent[kind] = false; return false; }
-      // Step 2: full submission — one email per attachment, split to stay
-      // under Velo's ~4MB request limit.
-      if (includeFiles && kind === "full" && window.__PW_STATE && window.__PW_STATE.files) {
-        const f1raw = window.__PW_STATE.files[1], f2raw = window.__PW_STATE.files[2];
-        const f1List = Array.isArray(f1raw) ? f1raw : (f1raw ? [f1raw] : []);
-        const f2List = Array.isArray(f2raw) ? f2raw : (f2raw ? [f2raw] : []);
-        const atts = [];
-        for (let i = 0; i < f1List.length; i++) atts.push({ f: f1List[i], defaultName: "bank_statement_" + (i+1) + ".pdf", label: "Bank statement " + (i+1) });
-        for (let i = 0; i < f2List.length; i++) atts.push({ f: f2List[i], defaultName: "id_" + (i+1) + ".pdf", label: "ID / driver's license " + (i+1) });
+      if (!dataOk) { __sent[kind] = false; pwUp.done(); return false; }
+      // Step 2: each file is its own small request (Velo size limit),
+      // sent 3 at a time with one retry and a progress screen.
+      if (atts.length) {
         const total = atts.length;
-        for (let idx = 0; idx < atts.length; idx++) {
-          const a = atts[idx];
-          const filename = a.f.name || a.defaultName;
-          try {
-            const b64 = await fileToBase64(a.f);
-            const attPayload = {
-              lead_type: SOURCE_LABEL.toLowerCase() + "_attachment",
-              subject: "[Quick Calc — Attachment " + (idx+1) + "/" + total + "] " + leadLabel(d) + " — " + a.label,
-              html_body: "<p>Attachment <b>" + (idx+1) + " of " + total + "</b> for the submission from <b>" + leadLabel(d).replace(/</g,"&lt;") + "</b>.</p><p>Type: " + a.label + "<br>Filename: " + filename.replace(/</g,"&lt;") + "</p>",
-              reply_to: d.email || "",
-              fields: { attachment_index: idx+1, attachment_total: total, filename: filename },
-              attachments: [{ filename: filename, content_type: a.f.type || "application/pdf", data_base64: b64 }]
-            };
-            const attResp = await fetch(WIX_FUNCTION_URL, { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(attPayload) });
-            if (!attResp.ok) console.error("[pinewood-calculator-quick] attachment " + (idx+1) + " failed (file may be >4MB)");
-          } catch (e) { console.error("[pinewood-calculator-quick] attachment " + (idx+1) + " encode/send failed:", e); }
-        }
+        await pwUploadAll(atts, async function(a){
+          const idx = a.idx, filename = a.filename;
+          const attSubject = "[Quick Calc — Attachment " + (idx+1) + "/" + total + "] " + leadLabel(d) + " — " + a.label;
+          const attBody = "<p>Attachment <b>" + (idx+1) + " of " + total + "</b> for the submission from <b>" + leadLabel(d).replace(/</g,"&lt;") + "</b>.</p>"
+            + "<p>Type: " + a.label + "<br>Filename: " + filename.replace(/</g,"&lt;") + "</p>";
+          const b64 = await fileToBase64(a.f);
+          const attPayload = {
+            lead_type: SOURCE_LABEL.toLowerCase() + "_attachment",
+            subject: attSubject,
+            html_body: attBody,
+            reply_to: d.email || "",
+            fields: { attachment_index: idx+1, attachment_total: total, filename: filename },
+            attachments: [{ filename: filename, content_type: a.f.type || "application/pdf", data_base64: b64 }]
+          };
+          const attOk = await pwQuickPost(attPayload);
+          if (!attOk) console.error("[pinewood-calculator-quick] attachment " + (idx+1) + " send failed");
+          return attOk;
+        });
+        pwUp.done();
       }
       return true;
     }
@@ -491,7 +639,13 @@
         // lead even if the user abandons at the final click.
         try { if ((n === 7 || n === "7" || n === 8 || n === "8") && !__sent.app) { send("app", false); } } catch(_) {}
         // Fire the full email on final submit (goP(9)) — the bundle bypasses subApp.
-        try { if ((n === 9 || n === "9") && !__sent.full) { send("full", true); } } catch(_) {}
+        try { if (n === 9 || n === "9") { pwStartFull(); } } catch(_) {}
+        // Hold the thank-you page until every document is uploaded.
+        if ((n === 9 || n === "9") && !__pwFullDone) {
+          const _self = this, _args = arguments;
+          pwStartFull().then(function(){ _goP.apply(_self, _args); });
+          return;
+        }
         // Application has no offer step. Skip page 7 (Your Offer) entirely.
         if (SOURCE_LABEL === "Application" && (n === 7 || n === "7")) {
           return _goP.call(this, 8);
@@ -504,7 +658,7 @@
         fullSending = true;
         const btn = document.getElementById("subBtn");
         if (btn) { btn.textContent = "Submitting…"; btn.disabled = true; }
-        send("full", true).then(ok => {
+        pwStartFull().then(ok => {
           if (btn) { btn.textContent = ok ? "Submitted ✓" : "Submitted (please confirm by phone)"; btn.disabled = true; }
           if (typeof window.goP === "function") window.goP(9);
         });
