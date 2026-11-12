@@ -159,6 +159,9 @@
           });
         }
         rebindOnclicks(host);
+        // Meta pre-screen (Nov 2026): four tap-only questions before page 1,
+        // Meta traffic only. Defined in wireEmailCapture, mounted once the DOM exists.
+        try { if (typeof window.__pwPrescreenMount === "function") window.__pwPrescreenMount(host); } catch(e){ console.error("[pinewood-calculator-v2] prescreen mount failed:", e); }
         // Extra safety net specifically for product selection (CSP-resistant):
         // listen for BOTH click and mousedown at document level in capture phase,
         // and if the target is inside a [onclick] inside our host, fire it.
@@ -321,7 +324,7 @@
       const S = window.__PW_STATE || {};
       const tib = {3:"Less than 6 months",9:"6 months – 1 year",18:"1–2 years",36:"2–5 years",72:"5+ years"};
       const use = {working_capital:"Working capital",inventory:"Inventory",equipment:"Equipment",expansion:"Expansion",marketing:"Marketing",hiring:"Hiring / payroll",debt:"Debt consolidation",other:"Other"};
-      return {
+      const out = {
         source: SOURCE_LABEL,
         monthly_revenue: fmtMoney(S.rev != null ? S.rev : val("p1R")),
         time_in_business: tib[S.tib] || val("p1T"),
@@ -341,6 +344,9 @@
         selected_product: (S.sel && S.sel.nm) || "",
         selected_amount: (S.sel && S.sel.amt) ? fmtMoney(S.sel.amt) : ""
       };
+      // Pre-screen answers and tier ride on every Meta send (partial, app, submission).
+      try { Object.assign(out, pwPrescreenFields()); } catch(_) {}
+      return out;
     }
     function leadLabel(d){ return (d.business_name||"").trim() || ((d.first_name||"")+" "+(d.last_name||"")).trim() || "Unknown lead"; }
     function buildBody(d, kind, utms){
@@ -373,6 +379,9 @@
       {
         var u = utms || {};
         order.push(["UTM attribution", (Object.keys(u).length ? Object.keys(u).map(function(k){return k+": "+u[k];}).join("  |  ") : "(none, direct visit)")]);
+        // Pre-screen (Meta traffic only): same "key: value" format so the intake job can read it.
+        var psKeys = ["prescreen_deposits","prescreen_positions","prescreen_weekly_pull","prescreen_defaults","prescreen_tier"].filter(function(k){ return d[k]; });
+        if (psKeys.length) order.push(["Pre-screen", psKeys.map(function(k){ return k + ": " + d[k]; }).join("  |  ")]);
       }
       const rows = order.filter(([k,v]) => v && String(v).trim())
         .map(([k,v]) => "<tr><td style=\"padding:4px 12px 4px 0;color:#666;vertical-align:top;white-space:nowrap\">" + k + "</td><td style=\"padding:4px 0\">" + String(v).replace(/</g,"&lt;") + "</td></tr>")
@@ -409,6 +418,113 @@
       } catch (_) { return {}; }
     }
     const __utms = captureUtms();
+    // ---- Meta pre-screen (Nov 2026) ----
+    // Four tap-only questions shown before page 1, only when utm_source=meta.
+    // Nobody is blocked. The answers decide one thing: whether this submission
+    // is reported to Meta as a Lead (tier "qualified"). Everything else about
+    // the calculator, the emails and the monday routing is unchanged.
+    // Spec: claude/meta-prescreen-spec.md in the Meta Ads project.
+    const PW_PS_KEY = "__pwPrescreen";
+    const PW_PS_Q = [
+      { id: "deposits", q: "Roughly what goes into your business bank account each month?",
+        opts: [["under_50k","Under $50,000"],["50k_100k","$50,000 to $100,000"],["100k_250k","$100,000 to $250,000"],["over_250k","Over $250,000"]] },
+      { id: "positions", q: "How many business financing positions do you have open today?",
+        opts: [["0","None"],["1","1"],["2","2"],["3plus","3 or more"]] },
+      { id: "weekly_pull", q: "Roughly what do those positions pull per week, all together?", showIf: function(a){ return a.positions && a.positions !== "0"; },
+        opts: [["under_2500","Under $2,500"],["2500_10000","$2,500 to $10,000"],["over_10000","Over $10,000"],["not_sure","Not sure"]] },
+      { id: "defaults", q: "Any defaults, settlements, or bankruptcies in the last few years?", note: "Not a disqualifier. We work with these situations too.",
+        opts: [["no","No"],["yes","Yes"]] }
+    ];
+    function pwPsLoad(){ try { var s = sessionStorage.getItem(PW_PS_KEY); return s ? JSON.parse(s) : null; } catch(_) { return null; } }
+    function pwPsSave(a){ window.__pwPrescreenAnswers = a; try { sessionStorage.setItem(PW_PS_KEY, JSON.stringify(a)); } catch(_) {} }
+    function pwPsAnswers(){ return window.__pwPrescreenAnswers || pwPsLoad() || null; }
+    function pwIndustryIsTrucking(){
+      try { var el = document.getElementById("ind"); var v = el ? String(el.value || "").toLowerCase() : ""; return v === "trucking" || v === "transportation"; } catch(_) { return false; }
+    }
+    // Tier: "qualified" sends the Meta Lead event, "standard" and "trucking" do not.
+    // Empty string means the pre-screen was not shown (non-Meta traffic).
+    function pwTier(){
+      if (pwIndustryIsTrucking()) return "trucking";
+      var a = pwPsAnswers();
+      if (!a || !a.deposits) return "";
+      var ok = (a.deposits !== "under_50k") && (a.positions === "0" || a.positions === "1" || a.positions === "2") && (a.defaults === "no");
+      return ok ? "qualified" : "standard";
+    }
+    function pwPrescreenFields(){
+      if (!pwIsMeta()) return {};
+      var a = pwPsAnswers() || {};
+      return { prescreen_deposits: a.deposits || "", prescreen_positions: a.positions || "", prescreen_weekly_pull: a.weekly_pull || "", prescreen_defaults: a.defaults || "", prescreen_tier: pwTier() };
+    }
+    window.__pwPrescreenMount = function(host){
+      if (!pwIsMeta()) return;
+      if (pwPsAnswers()) return;
+      var p1 = document.getElementById("page1");
+      if (!p1 || document.getElementById("pwPrescreen")) return;
+      var css = document.createElement("style");
+      css.textContent = ""
+        + "#pwPrescreen .pw-ps-step{animation:pwPsIn .32s cubic-bezier(.2,.8,.2,1) both}"
+        + "@keyframes pwPsIn{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}"
+        + "#pwPrescreen .pw-ps-dots{display:flex;gap:6px;margin-bottom:10px}"
+        + "#pwPrescreen .pw-ps-dots i{display:block;width:8px;height:8px;border-radius:50%;background:var(--line);transition:background .2s}"
+        + "#pwPrescreen .pw-ps-dots i.on{background:var(--accent)}"
+        + "#pwPrescreen .pw-ps-opts{display:flex;flex-direction:column;gap:10px;margin-top:14px}"
+        + "#pwPrescreen .pw-ps-opt{display:flex;align-items:center;justify-content:space-between;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;font:inherit;font-size:1.02em;font-weight:600;color:var(--ink);cursor:pointer;transition:border-color .15s, box-shadow .15s, transform .15s;min-height:56px}"
+        + "#pwPrescreen .pw-ps-opt:hover{border-color:var(--accent);box-shadow:0 2px 10px -4px rgba(15,25,21,.1)}"
+        + "#pwPrescreen .pw-ps-opt.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}"
+        + "#pwPrescreen .pw-ps-opt .pw-ps-chk{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line);flex-shrink:0;margin-left:12px}"
+        + "#pwPrescreen .pw-ps-opt.on .pw-ps-chk{background:var(--accent);border-color:var(--accent)}"
+        + "#pwPrescreen .pw-ps-note{font-size:.86em;color:var(--mute);margin-top:6px}"
+        + "#pwPrescreen .pw-ps-back{background:none;border:none;font:inherit;font-size:.88em;color:var(--mute);cursor:pointer;padding:8px 0;margin-top:6px;text-align:left}"
+        + "#pwPrescreen .pw-ps-back:hover{color:var(--ink)}";
+      host.appendChild(css);
+      var sec = document.createElement("section");
+      sec.className = "page active";
+      sec.id = "pwPrescreen";
+      p1.parentNode.insertBefore(sec, p1);
+      p1.classList.remove("active");
+      var answers = {};
+      var idx = 0;
+      var busy = false;
+      function visible(){ return PW_PS_Q.filter(function(q){ return !q.showIf || q.showIf(answers); }); }
+      function finish(){
+        pwPsSave(answers);
+        try { sec.parentNode.removeChild(sec); } catch(_) {}
+        p1.classList.add("active");
+        try { host.scrollIntoView({ block: "start", behavior: "smooth" }); } catch(_) {}
+      }
+      function render(){
+        var list = visible();
+        if (idx >= list.length) { finish(); return; }
+        var q = list[idx];
+        var dots = list.map(function(_, i){ return "<i class=\"" + (i <= idx ? "on" : "") + "\"></i>"; }).join("");
+        var opts = q.opts.map(function(o){
+          return "<button type=\"button\" class=\"pw-ps-opt" + (answers[q.id] === o[0] ? " on" : "") + "\" data-v=\"" + o[0] + "\"><span>" + o[1] + "</span><span class=\"pw-ps-chk\"></span></button>";
+        }).join("");
+        sec.innerHTML = ""
+          + "<div class=\"pw-ps-step\">"
+          + "<div class=\"eyebrow\">Four quick taps so the numbers fit your situation.</div>"
+          + "<div class=\"pw-ps-dots\" style=\"margin-top:10px\">" + dots + "</div>"
+          + "<h2 style=\"margin-top:6px\">" + q.q + "</h2>"
+          + (q.note ? "<div class=\"pw-ps-note\">" + q.note + "</div>" : "")
+          + "<div class=\"card\"><div class=\"pw-ps-opts\">" + opts + "</div>"
+          + (idx > 0 ? "<button type=\"button\" class=\"pw-ps-back\">← Back</button>" : "")
+          + "</div></div>";
+        sec.querySelectorAll(".pw-ps-opt").forEach(function(b){
+          b.addEventListener("click", function(){
+            // The Wix wrapper can fire a tap 2 to 3 times; take the first only.
+            if (busy) return; busy = true; setTimeout(function(){ busy = false; }, 450);
+            answers[q.id] = b.getAttribute("data-v");
+            if (q.id === "positions" && answers.positions === "0") delete answers.weekly_pull;
+            b.classList.add("on");
+            idx++;
+            setTimeout(render, 160);
+          });
+        });
+        var back = sec.querySelector(".pw-ps-back");
+        if (back) back.addEventListener("click", function(){ if (idx > 0) { idx--; render(); } });
+      }
+      render();
+    };
     // ---- Meta (Facebook) lead tracking ----
     // Qualified = monthly revenue at or above PW_QUAL_MIN. The Lead event is
     // the campaign optimization event. It fires once per session, in page, at
@@ -430,11 +546,19 @@
         return id;
       } catch (_) { return "pw-" + Date.now(); }
     }
+    // Meta traffic: the pre-screen tier is the gate (qualified only).
+    // Other traffic: the $50K stated-revenue floor, as before.
+    function pwMetaQualified(){
+      try {
+        if (pwIsMeta()) return pwTier() === "qualified";
+        return pwRevenueNum() >= PW_QUAL_MIN;
+      } catch (_) { return false; }
+    }
     function pwFireMetaLead(){
       try {
         if (window.__pwMetaLeadFired) return;
         var rev = pwRevenueNum();
-        if (rev < PW_QUAL_MIN) return;
+        if (!pwMetaQualified()) return;
         window.__pwMetaLeadFired = true;
         if (typeof window.fbq === "function") {
           window.fbq("track", "Lead", {
@@ -480,8 +604,9 @@
         var payload = {
           source: (SOURCE_LABEL === "Application") ? "Application" : "calculator",
           lead_type: leadType,
-          qualified: rev >= PW_QUAL_MIN,
+          qualified: pwMetaQualified(),
           revenue: rev,
+          prescreen_tier: pwTier(),
           fields: (typeof window.__pwGather === "function") ? window.__pwGather() : {},
           first_name: g("fNm"),
           last_name: g("lNm"),
