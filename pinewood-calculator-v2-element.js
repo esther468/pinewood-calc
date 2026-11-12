@@ -604,9 +604,14 @@
         var payload = {
           source: (SOURCE_LABEL === "Application") ? "Application" : "calculator",
           lead_type: leadType,
-          qualified: pwMetaQualified(),
+          // "qualified" keeps its original meaning ($50K+ stated revenue): the Zap
+          // uses it to decide whether to create the monday item, and routing must
+          // not change. The Meta Lead decision travels separately as prescreen_tier
+          // and meta_lead (true only when the pre-screen tier is qualified).
+          qualified: rev >= PW_QUAL_MIN,
           revenue: rev,
           prescreen_tier: pwTier(),
+          meta_lead: pwMetaQualified(),
           fields: (typeof window.__pwGather === "function") ? window.__pwGather() : {},
           first_name: g("fNm"),
           last_name: g("lNm"),
