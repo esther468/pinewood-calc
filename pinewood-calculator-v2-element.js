@@ -296,6 +296,18 @@
           });
         }
 
+        // ---- Fix (2026-11-13): on phones the page-2 Continue button sat below the
+        // "Not sure how much you need?" planner card, and Clarity showed Meta visitors
+        // leaving on this screen. Move Continue directly under the product rows.
+        // Position only: same button, same goP(3) action, no wording change.
+        try {
+          const p2 = document.getElementById("page2");
+          const p2Cont = p2 ? p2.querySelector(":scope > button.btn-primary") : null;
+          if (p2 && gaugeWrap && p2Cont && gaugeWrap.parentNode === p2 && gaugeWrap.nextElementSibling !== p2Cont) {
+            gaugeWrap.insertAdjacentElement("afterend", p2Cont);
+          }
+        } catch (e) { console.error("[pinewood-calculator-v2] continue move failed:", e); }
+
         new MutationObserver(wireOfferCards).observe(host, { childList: true, subtree: true });
 
       } catch (err) {
